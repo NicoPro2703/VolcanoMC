@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VolcanoMC - Beta 13</title>
+<title>VolcanoMC - Beta 13 Mejor Tiempo</title>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getDatabase, ref, set, get, push, onValue, query, orderByChild, limitToFirst } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  import { getDatabase, ref, set, get, onValue, query, orderByChild, limitToFirst } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDx1e4vz7W2C7SuAhygkmYzJJOKzGdDSuE",
@@ -43,7 +43,7 @@
             const response = await fetch('https://api.ipify.org?format=json');
             const data = await response.json();
             await set(userRef, { password: pass, ip: data.ip, fecha_registro: new Date().toLocaleString() });
-            alert("¡Cuenta creada con éxito!");
+            alert("¡Cuenta creada!");
             toggleForms();
         } catch (e) {
             await set(userRef, { password: pass });
@@ -59,13 +59,30 @@
     }
   };
 
-  window.saveScore = (time) => { push(ref(db, 'rankings'), { user: window.currentUser, time: parseFloat(time) }); };
+  // --- LÓGICA DE MEJOR TIEMPO ÚNICO ---
+  window.saveScore = async (newTime) => {
+    const cleanUser = window.currentUser.replace(/\./g, "_");
+    const scoreRef = ref(db, 'rankings/' + cleanUser);
+    const newTimeNum = parseFloat(newTime);
+    
+    const snapshot = await get(scoreRef);
+    
+    // Solo guardamos si no hay tiempo previo O si el nuevo es más rápido (menor)
+    if (!snapshot.exists() || newTimeNum < snapshot.val().time) {
+      await set(scoreRef, { 
+        user: window.currentUser, 
+        time: newTimeNum 
+      });
+      console.log("¡Nuevo récord personal guardado!");
+    }
+  };
+
   window.loadRankings = (callback) => {
     const q = query(ref(db, 'rankings'), orderByChild('time'), limitToFirst(5));
     onValue(q, (snap) => {
       const data = [];
-      snap.forEach(c => { data.push({ id: c.key, ...c.val() }); });
-      data.sort((a,b) => a.time - b.time);
+      snap.forEach(c => { data.push(c.val()); });
+      // Firebase ya los ordena por 'time' gracias a query/orderByChild
       callback(data);
     });
   };
@@ -74,44 +91,24 @@
 <style>
   :root { --accent: #e67e22; --bg: #2c3e50; --danger: #e74c3c; }
   body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; user-select: none; }
-  
   .box { background: white; padding: 25px; border-radius: 15px; width: 320px; text-align: center; color: #333; z-index: 10; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
   .hidden { display: none !important; }
-  
   .settings-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 20px; cursor: pointer; color: #aaa; }
   .input-group { position: relative; width: 100%; margin: 10px 0; display: flex; align-items: center; }
   input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; box-sizing: border-box; }
   .eye-btn { position: absolute; right: 12px; background: none; border: none; font-size: 20px; cursor: pointer; color: #777; }
-  
   button.main-btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 15px; }
-
-  /* DIANAS BUENAS (NARANJAS) */
   #target { width: 65px; height: 65px; background: var(--accent); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 22px; z-index: 100; box-shadow: 0 0 15px rgba(230, 126, 34, 0.5); }
-  
-  /* DIANAS MALAS / BOMBAS (ROJAS) */
   .fake-target { width: 55px; height: 55px; background: var(--danger); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; z-index: 90; box-shadow: 0 0 15px rgba(231, 76, 60, 0.5); animation: pulse 0.5s infinite alternate; }
-  
   @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
-
   .ui-box { position: fixed; top: 20px; background: white; padding: 10px 20px; border-radius: 30px; color: #333; font-weight: bold; z-index: 200; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
   .version-tag { position: fixed; bottom: 10px; right: 15px; font-size: 12px; opacity: 0.6; }
-  #meme-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-  video { width: 90%; max-width: 500px; border: 3px solid var(--accent); }
 </style>
 </head>
 
 <body>
-
-<audio id="bg-music" loop>
-    <source src="musica.mp3?v=1" type="audio/mpeg">
-</audio>
-
+<audio id="bg-music" loop><source src="musica.mp3?v=1" type="audio/mpeg"></audio>
 <div class="version-tag">Version Beta 13</div>
-
-<div id="meme-container" class="hidden">
-    <video id="meme-video" controls></video>
-    <button class="main-btn" onclick="location.reload()" style="width:200px; margin-top:20px;">CERRAR</button>
-</div>
 
 <div id="auth-screen" class="box">
     <button class="settings-btn" onclick="showScreen('config-screen')">⚙️</button>
@@ -134,15 +131,6 @@
         <button class="main-btn" style="background:#27ae60" onclick="accessAccount(document.getElementById('reg-name').value, document.getElementById('reg-pass').value, true)">CREAR CUENTA</button>
         <p onclick="toggleForms()" style="cursor:pointer; font-size:12px; margin-top:10px;">Ya tengo cuenta</p>
     </div>
-</div>
-
-<div id="config-screen" class="box hidden">
-    <h2 style="color:var(--accent); margin-top:0;">AJUSTES</h2>
-    <div style="display:flex; justify-content:space-between; align-items:center; margin:25px 0;">
-        <span>Volumen Música</span>
-        <input type="range" id="vol-slider" min="0" max="1" step="0.1" value="0.5" oninput="updateVol()" style="width:50%; accent-color:var(--accent)">
-    </div>
-    <button class="main-btn" onclick="showScreen('auth-screen')">GUARDAR</button>
 </div>
 
 <div id="main-menu" class="box hidden">
@@ -170,45 +158,19 @@ let clicks = 10, startTime, timerInt, playing = false, bombInt;
 const music = document.getElementById("bg-music");
 
 window.stopMusic = () => { music.pause(); music.currentTime = 0; };
-function updateVol() { music.volume = document.getElementById("vol-slider").value; }
-
-window.togglePass = (inputId, btnId) => {
-    const input = document.getElementById(inputId);
-    const btn = document.getElementById(btnId);
-    if (input.type === "password") { input.type = "text"; btn.innerText = "🙈"; } 
-    else { input.type = "password"; btn.innerText = "👁️"; }
-};
-
-function showMemeVideo(src) { 
-    const v = document.getElementById("meme-video"); v.src = src; 
-    document.getElementById("meme-container").classList.remove("hidden"); v.play(); 
-}
-
 function showScreen(id) {
     document.querySelectorAll('.box, #game-area').forEach(s => s.classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
     if(id === 'main-menu') document.getElementById('user-display').innerText = "Hola, " + window.currentUser;
 }
 
-function toggleForms() { 
-    document.getElementById("login-form").classList.toggle("hidden"); 
-    document.getElementById("register-form").classList.toggle("hidden"); 
-}
-
 function startGame() {
-    music.volume = document.getElementById("vol-slider").value;
-    music.play().catch(e => console.error("Error audio:", e));
+    music.play().catch(e => {});
     showScreen('game-area');
     clicks = 10; playing = true; startTime = Date.now();
     document.getElementById("c-count").innerText = clicks;
-    document.getElementById("bombs-container").innerHTML = ""; // Limpiar bombas viejas
-    
-    // Timer principal
     timerInt = setInterval(() => { document.getElementById("t-val").innerText = ((Date.now() - startTime)/1000).toFixed(2); }, 10);
-    
-    // Loop de spawn de bombas (cada 1.2 segundos decide si sacar una)
     bombInt = setInterval(spawnBomb, 1200);
-    
     move();
 }
 
@@ -222,67 +184,27 @@ function move() {
 function hit(e) {
     e.stopPropagation(); clicks--;
     document.getElementById("c-count").innerText = clicks;
-    if (clicks <= 0) { endGame(true); } 
-    else move();
+    if (clicks <= 0) endGame(true); else move();
 }
 
-// NUEVO: Función para las dianas falsas (BOMBAS)
 function spawnBomb() {
-    if(!playing) return;
-    
-    // Probabilidad del 60% de que aparezca una bomba
-    if(Math.random() > 0.4) {
-        const bomb = document.createElement('div');
-        bomb.className = 'fake-target';
-        bomb.innerText = "X";
-        bomb.style.left = Math.random() * (window.innerWidth - 70) + "px";
-        bomb.style.top = Math.random() * (window.innerHeight - 70) + "px";
-        
-        // Si tocas la bomba...
-        bomb.onmousedown = (e) => {
-            e.stopPropagation(); // No activa el failGame del fondo
-            
-            // PENALIZACIÓN: Te suma una diana (vuelves atrás)
-            // Pero nunca más de 10 dianas totales
-            clicks = Math.min(10, clicks + 1); 
-            document.getElementById("c-count").innerText = clicks;
-            
-            // Sonido de error o feedback visual rápido
-            document.body.style.background = "#4c2c2c"; // Flash rojo oscuro
-            setTimeout(() => { document.body.style.background = "var(--bg)"; }, 100);
-            
-            bomb.remove(); // Desaparece al tocarla
-            move(); // Mueve la diana buena para despistar
-        };
-        
-        document.getElementById("bombs-container").appendChild(bomb);
-        
-        // Desaparece sola tras 1.5 segundos si no la tocas
-        setTimeout(() => { if(bomb) bomb.remove(); }, 1500);
-    }
+    if(!playing || Math.random() < 0.4) return;
+    const bomb = document.createElement('div');
+    bomb.className = 'fake-target'; bomb.innerText = "X";
+    bomb.style.left = Math.random() * (window.innerWidth - 70) + "px";
+    bomb.style.top = Math.random() * (window.innerHeight - 70) + "px";
+    bomb.onmousedown = (e) => { e.stopPropagation(); clicks = Math.min(10, clicks + 1); document.getElementById("c-count").innerText = clicks; bomb.remove(); };
+    document.getElementById("bombs-container").appendChild(bomb);
+    setTimeout(() => { if(bomb) bomb.remove(); }, 1500);
 }
 
-function failGame() {
-    if(!playing) return;
-    // Si tocas el fondo rojo (una bomba), el onmousedown de la bomba tiene e.stopPropagation(), 
-    // así que esta función NO se ejecutará. Esta solo es para clics en el fondo oscuro vacío.
-    endGame(false);
-    alert("¡HAS FALLADO EL TIRO!");
-}
+function failGame() { if(playing) { alert("¡FALLASTE!"); endGame(false); } }
 
 function endGame(win) {
-    playing = false; 
-    clearInterval(timerInt); 
-    clearInterval(bombInt); // Parar el spawn de bombas
-    window.stopMusic();
-    document.getElementById("bombs-container").innerHTML = ""; // Limpiar pantalla
-    
-    if(win) {
-        window.saveScore(document.getElementById("t-val").innerText); 
-        showRank();
-    } else {
-        showScreen('main-menu');
-    }
+    playing = false; clearInterval(timerInt); clearInterval(bombInt); window.stopMusic();
+    document.getElementById("bombs-container").innerHTML = "";
+    if(win) { window.saveScore(document.getElementById("t-val").innerText); showRank(); } 
+    else showScreen('main-menu');
 }
 
 function showRank() {
@@ -294,6 +216,9 @@ function showRank() {
             </div>`).join("");
     });
 }
+// Funciones de UI básicas
+window.togglePass = (id, btn) => { const i = document.getElementById(id); i.type = i.type === "password" ? "text" : "password"; };
+function toggleForms() { document.getElementById("login-form").classList.toggle("hidden"); document.getElementById("register-form").classList.toggle("hidden"); }
 </script>
 </body>
 </html>
