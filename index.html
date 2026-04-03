@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VolcanoMC - Beta 13 Mejor Tiempo</title>
+<title>VolcanoMC - Beta 14</title>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -59,21 +59,13 @@
     }
   };
 
-  // --- LÓGICA DE MEJOR TIEMPO ÚNICO ---
   window.saveScore = async (newTime) => {
     const cleanUser = window.currentUser.replace(/\./g, "_");
     const scoreRef = ref(db, 'rankings/' + cleanUser);
     const newTimeNum = parseFloat(newTime);
-    
     const snapshot = await get(scoreRef);
-    
-    // Solo guardamos si no hay tiempo previo O si el nuevo es más rápido (menor)
     if (!snapshot.exists() || newTimeNum < snapshot.val().time) {
-      await set(scoreRef, { 
-        user: window.currentUser, 
-        time: newTimeNum 
-      });
-      console.log("¡Nuevo récord personal guardado!");
+      await set(scoreRef, { user: window.currentUser, time: newTimeNum });
     }
   };
 
@@ -82,7 +74,6 @@
     onValue(q, (snap) => {
       const data = [];
       snap.forEach(c => { data.push(c.val()); });
-      // Firebase ya los ordena por 'time' gracias a query/orderByChild
       callback(data);
     });
   };
@@ -93,7 +84,8 @@
   body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; user-select: none; }
   .box { background: white; padding: 25px; border-radius: 15px; width: 320px; text-align: center; color: #333; z-index: 10; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
   .hidden { display: none !important; }
-  .settings-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 20px; cursor: pointer; color: #aaa; }
+  .settings-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 20px; cursor: pointer; color: #aaa; transition: 0.3s; }
+  .settings-btn:hover { color: var(--accent); }
   .input-group { position: relative; width: 100%; margin: 10px 0; display: flex; align-items: center; }
   input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; box-sizing: border-box; }
   .eye-btn { position: absolute; right: 12px; background: none; border: none; font-size: 20px; cursor: pointer; color: #777; }
@@ -108,10 +100,10 @@
 
 <body>
 <audio id="bg-music" loop><source src="musica.mp3?v=1" type="audio/mpeg"></audio>
-<div class="version-tag">Version Beta 13</div>
+<div class="version-tag">Version Beta 14</div>
 
 <div id="auth-screen" class="box">
-    <button class="settings-btn" onclick="showScreen('config-screen')">⚙️</button>
+    <button class="settings-btn" onclick="openSettings('auth-screen')">⚙️</button>
     <h1 style="color:var(--accent); margin:0 0 15px 0;">🌋 VolcanoMC</h1>
     <div id="login-form">
         <input id="u-name" type="text" placeholder="Usuario">
@@ -133,10 +125,20 @@
     </div>
 </div>
 
+<div id="config-screen" class="box hidden">
+    <h2 style="color:var(--accent); margin-top:0;">AJUSTES</h2>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin:25px 0;">
+        <span>Volumen Música</span>
+        <input type="range" id="vol-slider" min="0" max="1" step="0.1" value="0.5" oninput="updateVol()" style="width:50%; accent-color:var(--accent)">
+    </div>
+    <button class="main-btn" id="save-settings-btn">GUARDAR</button>
+</div>
+
 <div id="main-menu" class="box hidden">
     <h2 id="user-display" style="color:var(--accent); margin-top:0;"></h2>
     <button class="main-btn" onclick="startGame()">JUGAR</button>
     <button class="main-btn" style="background:#34495e" onclick="showRank()">RANKING</button>
+    <button class="main-btn" style="background:#7f8c8d" onclick="openSettings('main-menu')">AJUSTES</button>
     <button class="main-btn" style="background:#c0392b" onclick="location.reload()">SALIR</button>
 </div>
 
@@ -154,10 +156,18 @@
 </div>
 
 <script>
-let clicks = 10, startTime, timerInt, playing = false, bombInt;
+let clicks = 10, startTime, timerInt, playing = false, bombInt, lastScreen = 'auth-screen';
 const music = document.getElementById("bg-music");
 
 window.stopMusic = () => { music.pause(); music.currentTime = 0; };
+function updateVol() { music.volume = document.getElementById("vol-slider").value; }
+
+function openSettings(from) {
+    lastScreen = from;
+    showScreen('config-screen');
+    document.getElementById('save-settings-btn').onclick = () => showScreen(lastScreen);
+}
+
 function showScreen(id) {
     document.querySelectorAll('.box, #game-area').forEach(s => s.classList.add('hidden'));
     document.getElementById(id).classList.remove('hidden');
@@ -165,6 +175,7 @@ function showScreen(id) {
 }
 
 function startGame() {
+    music.volume = document.getElementById("vol-slider").value;
     music.play().catch(e => {});
     showScreen('game-area');
     clicks = 10; playing = true; startTime = Date.now();
@@ -216,8 +227,13 @@ function showRank() {
             </div>`).join("");
     });
 }
-// Funciones de UI básicas
-window.togglePass = (id, btn) => { const i = document.getElementById(id); i.type = i.type === "password" ? "text" : "password"; };
+
+window.togglePass = (id, btnId) => { 
+    const i = document.getElementById(id); 
+    const b = document.getElementById(btnId);
+    if(i.type === "password") { i.type = "text"; b.innerText = "🙈"; }
+    else { i.type = "password"; b.innerText = "👁️"; }
+};
 function toggleForms() { document.getElementById("login-form").classList.toggle("hidden"); document.getElementById("register-form").classList.toggle("hidden"); }
 </script>
 </body>
