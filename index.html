@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VolcanoMC - Meme Edition</title>
+<title>VolcanoMC - Beta 8</title>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -47,7 +47,7 @@
     } else {
       if (snapshot.exists() && snapshot.val().password === pass) {
         window.currentUser = user;
-        if(user === "VolcanoMC.111" && pass === "1234") window.isAdmin = true;
+        if(user === "VolcanoMC111" && pass === "1234") window.isAdmin = true;
         showScreen("main-menu");
       } else alert("Usuario o clave mal puesta.");
     }
