@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VolcanoMC Minijuego - Beta-3</title>
+<title>VolcanoMC Minijuego - Beta-4</title>
 
 <style>
 :root { --accent: #e67e22; }
@@ -62,7 +62,7 @@ video::-webkit-media-controls { display: none !important; }
 
 <body oncontextmenu="return false;">
 
-<div id="version-tag">Beta-3</div>
+<div id="version-tag">Beta-4</div>
 
 <div id="screen-login" class="screen">
     <h1 style="color: var(--accent);">🌋 VolcanoMC</h1>
@@ -98,6 +98,8 @@ video::-webkit-media-controls { display: none !important; }
     </video>
     <div id="troll-text" style="color:white; margin-top:15px; font-weight:bold;">ANUNCIO OBLIGATORIO</div>
     <button id="btn-skip" class="hidden" onclick="restartGame()" style="margin-top:20px; padding:10px 20px; background:#27ae60; color:white; border:none; border-radius:5px; cursor:pointer;">SALTAR ANUNCIO</button>
+    
+    <div id="debug-status" style="color:#555; font-size:10px; position:fixed; top:5px; left:5px;"></div>
 </div>
 
 <script>
@@ -107,17 +109,30 @@ let startTime;
 let timerInterval;
 let isAdmin = false;
 let isPlaying = false;
+let trollUnlockTimeout; // Variable para el temporizador de seguridad
 
 const vPlayer = document.getElementById("troll-video");
 const skipBtn = document.getElementById("btn-skip");
+const trollTxt = document.getElementById("troll-text");
 const liveTimerDisplay = document.getElementById("live-timer");
 
 window.addEventListener('keydown', (e) => { if ([' ', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault(); });
 
-vPlayer.onended = () => { 
-    skipBtn.classList.remove("hidden"); 
-    document.getElementById("troll-text").innerText = "¡Anuncio finalizado!";
-};
+// Función unificada de desbloqueo con retraso de seguridad
+function unlockTrollWithDelay() {
+    clearTimeout(trollUnlockTimeout); // Limpiar cualquier temporizador anterior
+    
+    // El navegador cree que ha terminado, pero esperamos 3 segundos de seguridad
+    trollTxt.innerText = "Finalizando anuncio (3s)...";
+    
+    trollUnlockTimeout = setTimeout(() => {
+        skipBtn.classList.remove("hidden"); 
+        trollTxt.innerText = "¡Anuncio finalizado!";
+    }, 3000); // 3000ms = 3 segundos exactos de seguridad
+}
+
+// Eventos del reproductor
+vPlayer.onended = unlockTrollWithDelay;
 
 function login(){
     const name = document.getElementById("username").value.trim();
@@ -141,7 +156,11 @@ function login(){
         
         document.getElementById("screen-login").classList.add("hidden");
         document.getElementById("troll").classList.remove("hidden");
-        skipBtn.classList.add("hidden"); // Asegurar que esté oculto
+        
+        // Reiniciar estado de trolleo
+        skipBtn.classList.add("hidden"); 
+        trollTxt.innerText = "Reproduciendo anuncio obligatorio...";
+        clearTimeout(trollUnlockTimeout); // Asegurar que el temporizador esté limpio
         
         vPlayer.load(); 
         vPlayer.play();
@@ -244,6 +263,9 @@ function resetAll(){
 function restartGame(){
     stopGame();
     vPlayer.pause();
+    vPlayer.currentTime = 0; // Reiniciar video
+    clearTimeout(trollUnlockTimeout); // Limpiar temporizador de seguridad
+    
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById("game-area").classList.add("hidden");
     document.getElementById("troll").classList.add("hidden");
