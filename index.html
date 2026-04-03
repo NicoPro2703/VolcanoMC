@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VolcanoMC Minijuego - Beta-1</title>
+<title>VolcanoMC Minijuego - Beta-2</title>
 
 <style>
 :root { --accent: #e67e22; }
@@ -17,14 +17,23 @@ body{ margin:0; font-family:'Segoe UI', Arial; background:#f4f4f4; overflow: hid
 
 .hidden{ display:none !important; }
 
-/* Etiqueta de versión en la esquina */
+/* Etiqueta de versión */
 #version-tag {
     position: fixed; bottom: 10px; right: 10px;
     font-size: 12px; color: #888; font-weight: bold; z-index: 1000;
     pointer-events: none;
 }
 
-/* Área de Juego: debe tener un fondo para detectar clics */
+/* Interfaz del juego */
+.game-ui {
+    position: fixed; top: 15px; background: white; padding: 10px 15px; 
+    border-radius: 8px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    z-index: 50; pointer-events: none; font-variant-numeric: tabular-nums;
+}
+
+#ui-left { left: 15px; }
+#ui-right { right: 15px; border-left: 4px solid var(--accent); }
+
 #game-area{ 
     width:100vw; height:100vh; position:relative; 
     cursor: crosshair; background: rgba(0,0,0,0.01); 
@@ -36,7 +45,7 @@ body{ margin:0; font-family:'Segoe UI', Arial; background:#f4f4f4; overflow: hid
     color:white; cursor:pointer; font-weight:bold; user-select: none; z-index: 10;
 }
 
-/* TROLL VIDEO (LA CÁRCEL) */
+/* TROLL VIDEO */
 #troll{
     position:fixed; top:0; left:0; width:100vw; height:100vh;
     background:black; display:flex; justify-content:center; align-items:center;
@@ -44,8 +53,6 @@ body{ margin:0; font-family:'Segoe UI', Arial; background:#f4f4f4; overflow: hid
 }
 video{ width:100%; height: 80%; pointer-events: none; }
 video::-webkit-media-controls { display: none !important; }
-#troll-text { color: white; margin-top: 15px; font-weight: bold; text-transform: uppercase; }
-#btn-skip { margin-top:20px; padding: 10px 25px; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; }
 
 .leaderboard-item{ display:flex; justify-content:space-between; margin:10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; }
 </style>
@@ -53,7 +60,7 @@ video::-webkit-media-controls { display: none !important; }
 
 <body oncontextmenu="return false;">
 
-<div id="version-tag">Beta-1</div>
+<div id="version-tag">Beta-2</div>
 
 <div id="screen-login" class="screen">
     <h1 style="color: var(--accent);">🌋 VolcanoMC</h1>
@@ -65,16 +72,16 @@ video::-webkit-media-controls { display: none !important; }
 <div id="screen-gameover" class="screen hidden">
     <h1 style="color: #c0392b;">💥 GAME OVER</h1>
     <p>¡Has fallado el tiro!</p>
-    <p>Tu tiempo: <span id="fail-time">0</span>s</p>
+    <p>Tiempo final: <span id="fail-time">0.00</span>s</p>
     <br>
-    <button onclick="restartGame()" style="padding:10px 25px; background:#34495e; color:white; border:none; border-radius:5px; cursor:pointer;">INTENTAR DE NUEVO</button>
+    <button onclick="restartGame()" style="padding:10px 25px; background:#34495e; color:white; border:none; border-radius:5px; cursor:pointer;">REINTENTAR</button>
 </div>
 
 <div id="game-area" class="hidden" onmousedown="gameOver()">
+    <div id="ui-left" class="game-ui">Objetivos: <span id="clicks-left">10</span></div>
+    <div id="ui-right" class="game-ui">Tiempo: <span id="live-timer">0.00</span>s</div>
+    
     <div id="target" onmousedown="hitTarget(event)">10</div>
-    <div style="position:fixed;top:15px;left:15px;background:white;padding:10px;border-radius:8px; font-weight:bold; pointer-events:none; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-        Objetivos: <span id="clicks-left">10</span>
-    </div>
 </div>
 
 <div id="screen-leaderboard" class="screen hidden">
@@ -88,19 +95,21 @@ video::-webkit-media-controls { display: none !important; }
     <video id="troll-video" playsinline disablePictureInPicture>
         <source id="video-source" src="" type="video/mp4">
     </video>
-    <div id="troll-text">Reproduciendo anuncio obligatorio...</div>
-    <button id="btn-skip" class="hidden" onclick="restartGame()">SALTAR ANUNCIO</button>
+    <div id="troll-text" style="color:white; margin-top:15px; font-weight:bold;">ANUNCIO OBLIGATORIO</div>
+    <button id="btn-skip" class="hidden" onclick="restartGame()" style="margin-top:20px; padding:10px 20px; background:#27ae60; color:white; border:none; border-radius:5px; cursor:pointer;">SALTAR ANUNCIO</button>
 </div>
 
 <script>
-let currentUser=""
-let clicksNeeded=10
-let startTime
-let isAdmin=false
-let isPlaying=false
+let currentUser = "";
+let clicksNeeded = 10;
+let startTime;
+let timerInterval;
+let isAdmin = false;
+let isPlaying = false;
 
 const vPlayer = document.getElementById("troll-video");
 const skipBtn = document.getElementById("btn-skip");
+const liveTimerDisplay = document.getElementById("live-timer");
 
 window.addEventListener('keydown', (e) => { if ([' ', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault(); });
 
@@ -110,51 +119,60 @@ vPlayer.onended = () => {
 };
 
 function login(){
-    const name=document.getElementById("username").value.trim()
-    if(!name) return
-    currentUser=name
+    const name = document.getElementById("username").value.trim();
+    if (!name) return;
+    currentUser = name;
     const lower = name.toLowerCase();
 
-    if(name==="VolcanoMC.111"){ isAdmin=true; showLeaderboard(); return; }
-    if(lower==="volcanomc"){ showTroll("rick.mp4"); return; }
-    if(lower==="volcano"){ showTroll("skibidi.mp4"); return; }
-    startGame()
+    if(name === "VolcanoMC.111"){ isAdmin = true; showLeaderboard(); return; }
+    if(lower === "volcanomc"){ showTroll("rick.mp4"); return; }
+    if(lower === "volcano"){ showTroll("skibidi.mp4"); return; }
+    startGame();
 }
 
 function showTroll(file){
-    document.getElementById("screen-login").classList.add("hidden")
-    document.getElementById("video-source").src=file
-    document.getElementById("troll").classList.remove("hidden")
+    document.getElementById("screen-login").classList.add("hidden");
+    document.getElementById("video-source").src = file;
+    document.getElementById("troll").classList.remove("hidden");
     vPlayer.load(); 
     vPlayer.play();
 }
 
 function startGame(){
-    document.getElementById("screen-login").classList.add("hidden")
-    document.getElementById("game-area").classList.remove("hidden")
-    clicksNeeded=10
-    startTime=Date.now()
-    isPlaying=true
-    moveTarget()
+    document.getElementById("screen-login").classList.add("hidden");
+    document.getElementById("game-area").classList.remove("hidden");
+    clicksNeeded = 10;
+    isPlaying = true;
+    startTime = Date.now();
+    
+    // Iniciar temporizador visual
+    timerInterval = setInterval(updateTimer, 10);
+    
+    moveTarget();
+}
+
+function updateTimer() {
+    const elapsed = (Date.now() - startTime) / 1000;
+    liveTimerDisplay.innerText = elapsed.toFixed(2);
 }
 
 function moveTarget(){
-    const t=document.getElementById("target")
+    const t = document.getElementById("target");
     const maxX = window.innerWidth - 70;
     const maxY = window.innerHeight - 70;
     t.style.left = Math.random() * maxX + "px";
     t.style.top = Math.random() * maxY + "px";
-    t.innerText = clicksNeeded
-    document.getElementById("clicks-left").innerText = clicksNeeded
+    t.innerText = clicksNeeded;
+    document.getElementById("clicks-left").innerText = clicksNeeded;
 }
 
 function hitTarget(event){
-    event.stopPropagation(); // Evita que el clic se cuente como fallo en el fondo
-    clicksNeeded--
+    event.stopPropagation();
+    clicksNeeded--;
     if(clicksNeeded <= 0){
-        isPlaying = false;
-        const time = ((Date.now() - startTime) / 1000).toFixed(2);
-        saveScore(currentUser, time);
+        stopGame();
+        const finalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+        saveScore(currentUser, finalTime);
         showLeaderboard();
     } else { 
         moveTarget(); 
@@ -163,11 +181,16 @@ function hitTarget(event){
 
 function gameOver(){
     if(!isPlaying) return;
+    const finalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    stopGame();
+    document.getElementById("game-area").classList.add("hidden");
+    document.getElementById("screen-gameover").classList.remove("hidden");
+    document.getElementById("fail-time").innerText = finalTime;
+}
+
+function stopGame() {
     isPlaying = false;
-    const time = ((Date.now() - startTime) / 1000).toFixed(2);
-    document.getElementById("game-area").classList.add("hidden")
-    document.getElementById("screen-gameover").classList.remove("hidden")
-    document.getElementById("fail-time").innerText = time
+    clearInterval(timerInterval);
 }
 
 function saveScore(user, time){
@@ -178,9 +201,9 @@ function saveScore(user, time){
 }
 
 function showLeaderboard(){
-    document.getElementById("game-area").classList.add("hidden")
-    document.getElementById("screen-login").classList.add("hidden")
-    document.getElementById("screen-leaderboard").classList.remove("hidden")
+    document.getElementById("game-area").classList.add("hidden");
+    document.getElementById("screen-login").classList.add("hidden");
+    document.getElementById("screen-leaderboard").classList.remove("hidden");
     const scores = JSON.parse(localStorage.getItem("volcano_scores") || "[]");
     const list = document.getElementById("leaderboard-list");
     list.innerHTML = scores.map((s, i) => `
@@ -192,13 +215,14 @@ function showLeaderboard(){
 }
 
 function restartGame(){
-    isPlaying = false;
+    stopGame();
     vPlayer.pause();
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    document.getElementById("game-area").classList.add("hidden")
-    document.getElementById("troll").classList.add("hidden")
-    document.getElementById("screen-login").classList.remove("hidden")
+    document.getElementById("game-area").classList.add("hidden");
+    document.getElementById("troll").classList.add("hidden");
+    document.getElementById("screen-login").classList.remove("hidden");
     document.getElementById("username").value = "";
+    liveTimerDisplay.innerText = "0.00";
 }
 </script>
 </body>
