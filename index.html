@@ -1,221 +1,257 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VolcanoMC - Official Minigame</title>
-    <style>
-        :root {
-            --bg-color: #f4f4f4;
-            --text-color: #333;
-            --container-bg: #fff;
-            --accent: #e67e22;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VolcanoMC - Official Minigame</title>
 
-        [data-theme="dark"] {
-            --bg-color: #1a1a1a;
-            --text-color: #f4f4f4;
-            --container-bg: #2d2d2d;
-            --accent: #f39c12;
-        }
+<style>
+:root {
+    --bg-color: #f4f4f4;
+    --text-color: #333;
+    --container-bg: #fff;
+    --accent: #e67e22;
+}
 
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
+[data-theme="dark"] {
+    --bg-color: #1a1a1a;
+    --text-color: #f4f4f4;
+    --container-bg: #2d2d2d;
+    --accent: #f39c12;
+}
 
-        .screen {
-            background-color: var(--container-bg);
-            padding: 2.5rem;
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
-            text-align: center;
-            width: 90%;
-            max-width: 400px;
-            position: absolute;
-            z-index: 10;
-        }
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
 
-        .hidden { display: none !important; }
+/* Pantallas */
+.screen {
+    background-color: var(--container-bg);
+    padding: 2.5rem;
+    border-radius: 20px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    text-align: center;
+    width: 90%;
+    max-width: 400px;
+    position: absolute;
+}
 
-        /* Estilos del Anuncio (La Cárcel) */
-        .troll-overlay {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            background: black;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
+.hidden { display: none !important; }
 
-        video { width: 100%; height: 80%; outline: none; pointer-events: none; }
-        
-        /* Ocultar barra de progreso en navegadores */
-        video::-webkit-media-controls { display: none !important; }
+/* Troll */
+.troll-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: black;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
 
-        #retry-btn {
-            margin-top: 20px;
-            padding: 15px 40px;
-            background-color: #27ae60;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            display: none;
-        }
+video {
+    width: 100%;
+    height: 80%;
+}
 
-        /* Juego */
-        #game-area {
-            position: relative;
-            width: 100vw; height: 100vh;
-            background: var(--bg-color);
-        }
+/* Juego */
+#game-area {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+}
 
-        #target {
-            width: 60px; height: 60px;
-            background-color: var(--accent);
-            border-radius: 50%;
-            position: absolute;
-            cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; color: white;
-            box-shadow: 0 0 20px var(--accent);
-            user-select: none;
-        }
+#target {
+    width: 60px;
+    height: 60px;
+    background-color: var(--accent);
+    border-radius: 50%;
+    position: absolute;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    box-shadow: 0 0 20px var(--accent);
+}
 
-        .leaderboard-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px;
-            border-bottom: 1px solid rgba(128,128,128,0.2);
-        }
-    </style>
+.leaderboard-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px;
+    border-bottom: 1px solid rgba(128,128,128,0.2);
+}
+</style>
 </head>
-<body oncontextmenu="return false;">
 
-    <div id="troll-container" class="troll-overlay hidden">
-        <video id="troll-video" playsinline disablePictureInPicture>
-            <source id="video-source" src="" type="video/mp4">
-        </video>
-        <div id="troll-text" style="color:white; margin-top:10px;">ANUNCIO OBLIGATORIO</div>
-        <button id="retry-btn" onclick="location.reload()">SALTAR ANUNCIO</button>
+<body>
+
+<!-- ANUNCIO -->
+<div id="troll-container" class="troll-overlay hidden">
+    <video id="troll-video" muted playsinline>
+        <source id="video-source" src="" type="video/mp4">
+    </video>
+
+    <div style="color:white;">ANUNCIO OBLIGATORIO</div>
+    <button id="retry-btn" onclick="closeAd()" style="display:none;">SALTAR</button>
+</div>
+
+<!-- LOGIN -->
+<div id="screen-login" class="screen">
+    <h1 style="color: var(--accent);">🌋 VOLCANO MC</h1>
+    <input type="text" id="username" placeholder="Tu nombre...">
+    <br><br>
+    <button onclick="login()">ENTRAR</button>
+</div>
+
+<!-- JUEGO -->
+<div id="game-area" class="hidden">
+    <div id="target" onclick="hitTarget()">10</div>
+    <div style="position:fixed; top:20px; left:20px;">
+        Objetivos: <span id="clicks-left">10</span>
     </div>
+</div>
 
-    <div id="screen-login" class="screen">
-        <h1 style="color: var(--accent);">🌋 VOLCANO MC</h1>
-        <p>Introduce tu nick para jugar</p>
-        <input type="text" id="username" style="padding:10px; width:80%; margin-bottom:20px;" placeholder="Tu nombre...">
-        <br>
-        <button onclick="login()" style="padding:10px 30px; background:var(--accent); color:white; border:none; border-radius:5px; cursor:pointer;">ENTRAR</button>
-    </div>
+<!-- CLASIFICACIÓN -->
+<div id="screen-leaderboard" class="screen hidden">
+    <h2>🏆 TOP 5</h2>
+    <div id="leaderboard-list"></div>
+    <br>
+    <button onclick="restart()">REINTENTAR</button>
+</div>
 
-    <div id="game-area" class="hidden">
-        <div id="target" onclick="hitTarget()">10</div>
-        <div style="position:fixed; top:20px; left:20px; font-weight:bold; background:var(--container-bg); padding:10px; border-radius:10px;">
-            Objetivos: <span id="clicks-left">10</span>
+<script>
+let currentUser = "";
+let clicksNeeded = 10;
+let startTime;
+let isAdmin = false;
+
+const video = document.getElementById('troll-video');
+const btn = document.getElementById('retry-btn');
+
+/* LOGIN */
+function login() {
+    const name = document.getElementById('username').value.trim();
+    if (!name) return;
+
+    currentUser = name;
+
+    if (name === "VolcanoMC.111") {
+        isAdmin = true;
+        alert("Modo ADMIN activado 😎");
+    }
+
+    // Troll users
+    if (name.toLowerCase() === "volcano") {
+        showAd("skibidi.mp4");
+        return;
+    }
+
+    startGame();
+}
+
+/* ANUNCIO */
+function showAd(file) {
+    document.getElementById('video-source').src = file;
+    document.getElementById('troll-container').classList.remove('hidden');
+    video.load();
+    video.play();
+
+    setTimeout(() => {
+        btn.style.display = "block";
+    }, 3000);
+}
+
+function closeAd() {
+    document.getElementById('troll-container').classList.add('hidden');
+    startGame();
+}
+
+/* JUEGO */
+function startGame() {
+    document.getElementById('screen-login').classList.add('hidden');
+    document.getElementById('game-area').classList.remove('hidden');
+
+    clicksNeeded = 10;
+    startTime = Date.now();
+
+    moveTarget();
+}
+
+function moveTarget() {
+    const t = document.getElementById('target');
+
+    const maxX = window.innerWidth - 70;
+    const maxY = window.innerHeight - 70;
+
+    t.style.left = Math.random() * maxX + "px";
+    t.style.top = Math.random() * maxY + "px";
+
+    t.innerText = clicksNeeded;
+    document.getElementById('clicks-left').innerText = clicksNeeded;
+}
+
+function hitTarget() {
+    clicksNeeded--;
+
+    if (clicksNeeded <= 0) {
+        const time = ((Date.now() - startTime) / 1000).toFixed(2);
+        saveScore(currentUser, time);
+        showLeaderboard();
+    } else {
+        moveTarget();
+    }
+}
+
+/* CLASIFICACIÓN */
+function saveScore(user, time) {
+    let scores = JSON.parse(localStorage.getItem('volcano_scores') || "[]");
+
+    scores.push({ user, time: parseFloat(time) });
+    scores.sort((a, b) => a.time - b.time);
+
+    localStorage.setItem('volcano_scores', JSON.stringify(scores.slice(0, 5)));
+}
+
+function showLeaderboard() {
+    document.getElementById('game-area').classList.add('hidden');
+    document.getElementById('screen-leaderboard').classList.remove('hidden');
+
+    const scores = JSON.parse(localStorage.getItem('volcano_scores') || "[]");
+    const list = document.getElementById('leaderboard-list');
+
+    list.innerHTML = scores.map((s, i) => `
+        <div class="leaderboard-item">
+            <span>${i+1}. ${s.user}</span>
+            <span>${s.time}s</span>
         </div>
-    </div>
+    `).join('');
 
-    <div id="screen-leaderboard" class="screen hidden">
-        <h2 style="color: var(--accent);">🏆 TOP 5 TIEMPOS</h2>
-        <div id="leaderboard-list"></div>
-        <br>
-        <button onclick="location.reload()" style="padding:10px; cursor:pointer;">REINTENTAR</button>
-    </div>
+    if (isAdmin) {
+        list.innerHTML += `<button onclick="resetScores()">BORRAR TODO</button>`;
+    }
+}
 
-    <script>
-        let currentUser = "";
-        let clicksNeeded = 10;
-        let startTime;
+function resetScores() {
+    localStorage.removeItem('volcano_scores');
+    showLeaderboard();
+}
 
-        const video = document.getElementById('troll-video');
-        const btn = document.getElementById('retry-btn');
+/* REINICIAR */
+function restart() {
+    location.reload();
+}
+</script>
 
-        // Bloqueo de teclado
-        window.onkeydown = (e) => {
-            if ([' ', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault();
-        };
-
-        video.onended = () => {
-            btn.style.display = "block";
-            document.getElementById('troll-text').innerText = "Anuncio completado.";
-        };
-
-        function login() {
-            const name = document.getElementById('username').value.trim();
-            if (!name) return;
-
-            const lower = name.toLowerCase();
-            if (lower === "volcanomc" || lower === "volcano") {
-                const source = document.getElementById('video-source');
-                source.src = (lower === "volcanomc") ? "rick.mp4" : "skibidi.mp4";
-                document.getElementById('troll-container').classList.remove('hidden');
-                video.load();
-                video.play();
-                return;
-            }
-
-            currentUser = name;
-            startGame();
-        }
-
-        function startGame() {
-            document.getElementById('screen-login').classList.add('hidden');
-            document.getElementById('game-area').classList.remove('hidden');
-            clicksNeeded = 10;
-            moveTarget();
-            startTime = Date.now();
-        }
-
-        function moveTarget() {
-            const t = document.getElementById('target');
-            t.style.left = (Math.random() * (window.innerWidth - 80) + 10) + "px";
-            t.style.top = (Math.random() * (window.innerHeight - 80) + 10) + "px";
-            t.innerText = clicksNeeded;
-            document.getElementById('clicks-left').innerText = clicksNeeded;
-        }
-
-        function hitTarget() {
-            clicksNeeded--;
-            if (clicksNeeded <= 0) {
-                const time = ((Date.now() - startTime) / 1000).toFixed(2);
-                saveScore(currentUser, time);
-                showLeaderboard();
-            } else {
-                moveTarget();
-            }
-        }
-
-        function saveScore(user, time) {
-            let scores = JSON.parse(localStorage.getItem('volcano_scores') || "[]");
-            scores.push({ user, time: parseFloat(time) });
-            scores.sort((a, b) => a.time - b.time);
-            localStorage.setItem('volcano_scores', JSON.stringify(scores.slice(0, 5)));
-        }
-
-        function showLeaderboard() {
-            document.getElementById('game-area').classList.add('hidden');
-            document.getElementById('screen-leaderboard').classList.remove('hidden');
-            const scores = JSON.parse(localStorage.getItem('volcano_scores') || "[]");
-            const list = document.getElementById('leaderboard-list');
-            list.innerHTML = scores.map((s, i) => `
-                <div class="leaderboard-item">
-                    <span>${i+1}. <b>${s.user}</b></span>
-                    <span>${s.time}s</span>
-                </div>
-            `).join('');
-        }
-    </script>
 </body>
 </html>
