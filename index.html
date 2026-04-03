@@ -46,7 +46,6 @@
 
         .hidden { display: none !important; }
 
-        /* Área de Juego */
         #game-area {
             position: relative;
             width: 100vw;
@@ -70,7 +69,6 @@
             user-select: none;
         }
 
-        /* Clasificación */
         .leaderboard-item {
             display: flex;
             justify-content: space-between;
@@ -112,7 +110,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
-        /* Contenedores de Trolleo (Bloqueo Total) */
+        /* Capa de video (Trolleo) */
         .troll-overlay {
             position: fixed;
             top: 0;
@@ -132,18 +130,12 @@
 
     <div class="settings-btn" onclick="openSettings()">⚙️</div>
 
-    <div id="rickroll-container" class="troll-overlay hidden">
-        <video id="rick-video" width="100%" height="80%">
-            <source src="rick.mp4" type="video/mp4">
+    <div id="troll-container" class="troll-overlay hidden">
+        <video id="troll-video" width="100%" height="80%" controls>
+            <source id="video-source" src="" type="video/mp4">
         </video>
-        <div style="color: white; margin-top: 10px;">Anuncio de VolcanoMC...</div>
-        <button onclick="location.reload()" style="margin-top: 10px; opacity: 0.5;">Cerrar publicidad</button>
-    </div>
-
-    <div id="skibidi-container" class="troll-overlay hidden">
-        <iframe id="skibidi-video" width="100%" height="80%" src="" frameborder="0" allow="autoplay; encrypted-media" muted allowfullscreen></iframe>
-        <div style="color: white; margin-top: 10px;">¡Vaya, parece que te gusta Volcano!</div>
-        <button onclick="location.reload()" style="margin-top: 10px; opacity: 0.5;">Cerrar publicidad</button>
+        <div id="troll-text" style="color: white; margin-top: 10px;">Publicidad de VolcanoMC...</div>
+        <button onclick="location.reload()" style="margin-top: 10px; opacity: 0.5;">Cerrar anuncio</button>
     </div>
 
     <div id="screen-login" class="screen">
@@ -193,26 +185,26 @@
             const nameInput = document.getElementById('username').value.trim();
             if (!nameInput) return alert("Escribe un nombre.");
 
-            // --- CHEQUEO DE TROLLEOS ---
             const lowerName = nameInput.toLowerCase();
             
-            // TROLLEO 1: VolcanoMC (Rickroll, Bloqueo Total)
-            if (lowerName === "volcanomc") {
-                const container = document.getElementById('rickroll-container');
-                const video = document.getElementById('rick-video');
-                container.classList.remove('hidden');
-                video.play();
-                return;
-            }
+            // --- LÓGICA DE TROLLEO CON ARCHIVOS LOCALES ---
+            if (lowerName === "volcanomc" || lowerName === "volcano") {
+                const container = document.getElementById('troll-container');
+                const video = document.getElementById('troll-video');
+                const source = document.getElementById('video-source');
+                const text = document.getElementById('troll-text');
 
-            // TROLLEO 2: Volcano (Skibidi, Bloqueo Total)
-            if (lowerName === "volcano") {
-                const container = document.getElementById('skibidi-container');
-                const iframe = document.getElementById('skibidi-video');
-                // Cargamos el video silenciado (muted) con autoplay para que el navegador lo permita
-                iframe.src = "https://www.youtube.com/embed/Sdk_Y8Bbh_0?autoplay=1&mute=1";
+                if (lowerName === "volcanomc") {
+                    source.src = "rick.mp4";
+                    text.innerText = "Anuncio de VolcanoMC...";
+                } else {
+                    source.src = "skibidi.mp4";
+                    text.innerText = "¡Vaya, parece que te gusta Volcano!";
+                }
+
                 container.classList.remove('hidden');
-                // IMPORTANTE: NO saltamos al juego, nos quedamos bloqueados en el trolleo.
+                video.load(); // Recarga el video con el nuevo src
+                video.play();
                 return;
             }
 
