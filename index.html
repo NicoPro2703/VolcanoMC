@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VolcanoMC - Beta 10</title>
+<title>VolcanoMC - Beta 11</title>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -23,7 +23,7 @@
   const db = getDatabase(app);
 
   window.accessAccount = async (user, pass, isRegister) => {
-    if(!user || !pass) return alert("¡Rellena los datos!");
+    if(!user || !pass) return alert("Rellena los datos");
     const lowerUser = user.toLowerCase();
     if (isRegister && (lowerUser === "volcano" || lowerUser === "volcanomc")) {
         showMemeVideo(Math.random() > 0.5 ? "rick.mp4" : "skibiri.mp4");
@@ -32,7 +32,7 @@
     const userRef = ref(db, 'usuarios/' + user);
     const snapshot = await get(userRef);
     if (isRegister) {
-      if (snapshot.exists()) alert("Ese nombre ya existe.");
+      if (snapshot.exists()) alert("Ese nombre ya existe");
       else {
         await set(userRef, { password: pass });
         alert("¡Cuenta creada!");
@@ -43,20 +43,19 @@
         window.currentUser = user;
         if(user === "VolcanoMC111" && pass === "1234") window.isAdmin = true;
         showScreen("main-menu");
-      } else alert("Usuario o clave incorrectos.");
+      } else alert("Datos incorrectos");
     }
   };
 
-  // FUNCIÓN PARA EL OJO QUE CAMBIA
   window.togglePass = (inputId, btnId) => {
     const input = document.getElementById(inputId);
     const btn = document.getElementById(btnId);
     if (input.type === "password") {
         input.type = "text";
-        btn.innerText = "🙈"; // Ojo cerrado
+        btn.innerText = "🙈";
     } else {
         input.type = "password";
-        btn.innerText = "👁️"; // Ojo abierto
+        btn.innerText = "👁️";
     }
   };
 
@@ -75,18 +74,23 @@
 
 <style>
   :root { --accent: #e67e22; --bg: #2c3e50; }
-  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; }
-  .box { background: white; padding: 30px; border-radius: 15px; width: 300px; text-align: center; color: #333; z-index: 10; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  body { font-family: sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; }
+  
+  /* Marca de versión Beta */
+  .version-tag { position: fixed; bottom: 10px; right: 15px; font-size: 12px; opacity: 0.6; font-weight: bold; color: white; }
+
+  .box { background: white; padding: 30px; border-radius: 15px; width: 320px; text-align: center; color: #333; z-index: 10; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
   .hidden { display: none !important; }
   
-  /* CONTENEDOR CENTRADO */
-  .input-group { position: relative; width: 100%; margin: 8px 0; display: flex; align-items: center; }
-  input { width: 100%; padding: 12px; padding-right: 40px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+  /* Contenedor corregido para el ojo a la derecha */
+  .input-group { position: relative; width: 100%; margin: 10px 0; display: flex; align-items: center; }
+  input { width: 100%; padding: 14px; padding-right: 45px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none; }
   
-  /* BOTÓN DEL OJO BIEN POSICIONADO */
-  .eye-btn { position: absolute; right: 10px; background: none; border: none; font-size: 20px; cursor: pointer; color: #777; padding: 0; display: flex; align-items: center; justify-content: center; height: 100%; }
+  /* El ojo justo en el sitio que marcaste */
+  .eye-btn { position: absolute; right: 12px; background: none; border: none; font-size: 20px; cursor: pointer; color: #777; padding: 0; display: flex; align-items: center; justify-content: center; height: 100%; transition: 0.2s; }
+  .eye-btn:hover { color: var(--accent); }
   
-  button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 16px; }
+  button.main-btn { width: 100%; padding: 14px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 16px; text-transform: uppercase; }
   #target { width: 65px; height: 65px; background: var(--accent); border-radius: 50%; position: absolute; cursor: pointer; box-shadow: 0 0 15px var(--accent); }
   .ui { position: fixed; top: 15px; background: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; color: #333; }
   #meme-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -94,6 +98,8 @@
 </style>
 </head>
 <body>
+
+<div class="version-tag">Version Beta 11</div>
 
 <div id="meme-container" class="hidden">
     <h1 style="color: white; margin-bottom: 20px;">🕺 IMPOSTOR DETECTADO 🕺</h1>
@@ -105,31 +111,35 @@
     <h1 style="color: var(--accent); margin:0 0 20px 0;">🌋 VolcanoMC</h1>
     
     <div id="login-form">
-        <input id="u-name" type="text" placeholder="Usuario">
+        <div class="input-group">
+            <input id="u-name" type="text" placeholder="Usuario">
+        </div>
         <div class="input-group">
             <input id="u-pass" type="password" placeholder="Contraseña">
             <button id="eye-login" class="eye-btn" onclick="togglePass('u-pass', 'eye-login')">👁️</button>
         </div>
-        <button onclick="accessAccount(document.getElementById('u-name').value, document.getElementById('u-pass').value, false)">ENTRAR</button>
-        <p onclick="toggleForms()" style="cursor:pointer; font-size: 12px; margin-top: 15px;">¿No tienes cuenta? Regístrate</p>
+        <button class="main-btn" onclick="accessAccount(document.getElementById('u-name').value, document.getElementById('u-pass').value, false)">ENTRAR</button>
+        <p onclick="toggleForms()" style="cursor:pointer; font-size: 13px; margin-top: 15px;">¿No tienes cuenta? <span style="color:var(--accent)">Regístrate</span></p>
     </div>
 
     <div id="register-form" class="hidden">
-        <input id="reg-name" type="text" placeholder="Nombre (Sin puntos)">
+        <div class="input-group">
+            <input id="reg-name" type="text" placeholder="Usuario (Sin puntos)">
+        </div>
         <div class="input-group">
             <input id="reg-pass" type="password" placeholder="Contraseña">
             <button id="eye-reg" class="eye-btn" onclick="togglePass('reg-pass', 'eye-reg')">👁️</button>
         </div>
-        <button onclick="accessAccount(document.getElementById('reg-name').value, document.getElementById('reg-pass').value, true)" style="background:#27ae60">REGISTRARME</button>
-        <p onclick="toggleForms()" style="cursor:pointer; font-size: 12px; margin-top: 15px;">Ya tengo cuenta</p>
+        <button class="main-btn" onclick="accessAccount(document.getElementById('reg-name').value, document.getElementById('reg-pass').value, true)" style="background:#27ae60">REGISTRARME</button>
+        <p onclick="toggleForms()" style="cursor:pointer; font-size: 13px; margin-top: 15px;">Ya tengo cuenta</p>
     </div>
 </div>
 
 <div id="main-menu" class="box hidden">
     <h2 id="user-display" style="margin-top:0;"></h2>
-    <button onclick="startGame()">JUGAR</button>
-    <button style="background:#34495e" onclick="showRank()">RANKING</button>
-    <button style="background:#c0392b" onclick="location.reload()">CERRAR SESIÓN</button>
+    <button class="main-btn" onclick="startGame()">JUGAR</button>
+    <button class="main-btn" style="background:#34495e" onclick="showRank()">RANKING</button>
+    <button class="main-btn" style="background:#c0392b" onclick="location.reload()">CERRAR SESIÓN</button>
 </div>
 
 <div id="game-area" class="hidden" style="width: 100vw; height: 100vh;" onmousedown="failGame()">
@@ -140,11 +150,12 @@
 <div id="rank-screen" class="box hidden">
     <h2>🏆 TOP 5</h2>
     <div id="list"></div>
-    <button onclick="showScreen('main-menu')">VOLVER</button>
+    <button class="main-btn" onclick="showScreen('main-menu')">VOLVER</button>
 </div>
 
 <script>
-let clicks = 10, startTime, playing = false;
+// La lógica se mantiene igual para asegurar el funcionamiento
+let clicks = 10, playing = false;
 function showMemeVideo(src) { 
     const v = document.getElementById("meme-video"); v.src = src; 
     document.getElementById("meme-container").classList.remove("hidden"); v.play(); 
