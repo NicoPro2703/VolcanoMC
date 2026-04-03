@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VolcanoMC - Challenge</title>
+    <title>VolcanoMC - Official Minigame</title>
     <style>
         :root {
             --bg-color: #f4f4f4;
@@ -20,7 +20,7 @@
         }
 
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
@@ -46,7 +46,7 @@
 
         .hidden { display: none !important; }
 
-        /* Estilo del Juego */
+        /* Área de Juego */
         #game-area {
             position: relative;
             width: 100vw;
@@ -68,10 +68,7 @@
             color: white;
             box-shadow: 0 0 20px var(--accent);
             user-select: none;
-            transition: transform 0.1s;
         }
-        
-        #target:active { transform: scale(0.9); }
 
         /* Clasificación */
         .leaderboard-item {
@@ -81,7 +78,7 @@
             border-bottom: 1px solid rgba(128, 128, 128, 0.3);
         }
 
-        .admin-controls { color: #e74c3c; cursor: pointer; font-weight: bold; margin-left: 10px; }
+        .admin-del { color: #ff4757; cursor: pointer; font-weight: bold; }
 
         input {
             padding: 12px;
@@ -100,7 +97,6 @@
             border-radius: 10px;
             cursor: pointer;
             font-weight: bold;
-            text-transform: uppercase;
         }
 
         .settings-btn {
@@ -115,40 +111,62 @@
             border-radius: 50%;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
+
+        /* Contenedor Rickroll (Publicidad) */
+        #rickroll-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: black;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
 
     <div class="settings-btn" onclick="openSettings()">⚙️</div>
 
+    <div id="rickroll-container" class="hidden">
+        <video id="rick-video" width="100%" height="80%">
+            <source src="rick.mp4" type="video/mp4">
+        </video>
+        <div style="color: white; margin-top: 10px;">Publicidad de VolcanoMC...</div>
+        <button onclick="location.reload()" style="margin-top: 10px; opacity: 0.5;">Saltar anuncio</button>
+    </div>
+
     <div id="screen-login" class="screen">
-        <h1 style="color: var(--accent); margin-top: 0;">🌋 VOLCANO</h1>
-        <p>¿Podrás entrar en el Top 5?</p>
-        <input type="text" id="username" placeholder="Tu nombre de usuario...">
+        <h1 style="color: var(--accent);">🌋 VOLCANO MC</h1>
+        <p>Introduce tu nick para empezar</p>
+        <input type="text" id="username" placeholder="Nombre de usuario...">
         <br>
-        <button onclick="login()">¡A JUGAR!</button>
+        <button onclick="login()">ENTRAR</button>
     </div>
 
     <div id="screen-settings" class="screen hidden">
         <h2>Ajustes</h2>
-        <p>Personaliza tu experiencia</p>
-        <button onclick="toggleTheme()">Cambiar Modo Claro / Oscuro</button>
+        <button onclick="toggleTheme()">Modo Claro / Oscuro</button>
         <br><br>
-        <button onclick="closeSettings()" style="background:#555">VOLVER AL MENÚ</button>
+        <button onclick="closeSettings()" style="background:#555">VOLVER</button>
     </div>
 
     <div id="game-area" class="hidden">
         <div id="target" onclick="hitTarget()">10</div>
-        <div style="position:fixed; top:20px; left:20px; font-weight: bold; background: var(--container-bg); padding: 5px 15px; border-radius: 20px;">
-            Objetivos restantes: <span id="clicks-left">10</span>
+        <div style="position:fixed; top:20px; left:20px; font-weight: bold; background: var(--container-bg); padding: 10px; border-radius: 10px;">
+            Objetivos: <span id="clicks-left">10</span>
         </div>
     </div>
 
     <div id="screen-leaderboard" class="screen hidden">
-        <h2 style="color: var(--accent);">🏆 HALL OF FAME</h2>
+        <h2 style="color: var(--accent);">🏆 TOP 5 TIEMPOS</h2>
         <div id="leaderboard-list"></div>
         <br>
-        <button onclick="location.reload()">REINTENTAR</button>
+        <button onclick="location.reload()">VOLVER A JUGAR</button>
     </div>
 
     <script>
@@ -156,25 +174,29 @@
         let clicksNeeded = 10;
         let startTime;
         let isAdmin = false;
+        let lastActiveScreen = "screen-login";
 
         function showScreen(screenId) {
             document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
             document.getElementById('game-area').classList.add('hidden');
             document.getElementById(screenId).classList.remove('hidden');
+            if(screenId !== 'screen-settings') lastActiveScreen = screenId;
         }
 
         function login() {
-            const inputName = document.getElementById('username').value.trim();
-            
-            if (!inputName) return alert("¡Escribe un nombre!");
+            const nameInput = document.getElementById('username').value.trim();
+            if (!nameInput) return alert("Escribe un nombre.");
 
-            // --- EL RICKROLL ---
-            if (inputName.toLowerCase() === "volcanomc") {
-                window.location.href = "https://youtu.be/iik25wqIuFo?si=mMBLDjo2erLHbn_a";
+            // Rickroll check
+            if (nameInput.toLowerCase() === "volcanomc") {
+                const container = document.getElementById('rickroll-container');
+                const video = document.getElementById('rick-video');
+                container.classList.remove('hidden');
+                video.play();
                 return;
             }
 
-            currentUser = inputName;
+            currentUser = nameInput;
 
             if (currentUser === "VolcanoMC.111") {
                 isAdmin = true;
@@ -194,7 +216,6 @@
 
         function moveTarget() {
             const target = document.getElementById('target');
-            // Dejamos un margen de seguridad para que no salga fuera de la pantalla
             const x = Math.random() * (window.innerWidth - 80) + 10;
             const y = Math.random() * (window.innerHeight - 80) + 10;
             target.style.left = x + "px";
@@ -217,13 +238,10 @@
         function saveScore(user, time) {
             let scores = JSON.parse(localStorage.getItem('volcano_scores') || "[]");
             time = parseFloat(time);
+            const idx = scores.findIndex(s => s.user.toLowerCase() === user.toLowerCase());
 
-            const existingIndex = scores.findIndex(s => s.user.toLowerCase() === user.toLowerCase());
-
-            if (existingIndex !== -1) {
-                if (time < scores[existingIndex].time) {
-                    scores[existingIndex].time = time;
-                }
+            if (idx !== -1) {
+                if (time < scores[idx].time) scores[idx].time = time;
             } else {
                 scores.push({ user, time });
             }
@@ -238,13 +256,12 @@
             const list = document.getElementById('leaderboard-list');
             list.innerHTML = "";
 
-            // Solo mostrar los mejores 5
             scores.slice(0, 5).forEach((entry, i) => {
                 const div = document.createElement('div');
                 div.className = "leaderboard-item";
                 div.innerHTML = `
                     <span>${i + 1}. <b>${entry.user}</b> - ${entry.time}s</span>
-                    ${isAdmin ? `<span class="admin-controls" onclick="deleteUser('${entry.user}')">🗑️</span>` : ''}
+                    ${isAdmin ? `<span class="admin-del" onclick="deleteUser('${entry.user}')">🗑️</span>` : ''}
                 `;
                 list.appendChild(div);
             });
@@ -257,12 +274,19 @@
             showLeaderboard();
         }
 
+        // Configuración
         function openSettings() {
             document.getElementById('screen-settings').classList.remove('hidden');
         }
 
         function closeSettings() {
             document.getElementById('screen-settings').classList.add('hidden');
+            // Volver a la pantalla donde estábamos (juego o login)
+            if(lastActiveScreen === 'game-area') {
+                document.getElementById('game-area').classList.remove('hidden');
+            } else {
+                document.getElementById(lastActiveScreen).classList.remove('hidden');
+            }
         }
 
         function toggleTheme() {
