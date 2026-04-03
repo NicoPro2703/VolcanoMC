@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VolcanoMC - Sistema de Cuentas</title>
+<title>VolcanoMC - Hardcore Mode</title>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -23,44 +23,32 @@
   const app = initializeApp(firebaseConfig);
   const db = getDatabase(app);
 
-  // --- LÓGICA DE CUENTAS (REGISTRO Y LOGIN) ---
   window.accessAccount = async (user, pass, isRegister) => {
-    if(!user || !pass) return alert("Rellena todos los campos");
-    
+    if(!user || !pass) return alert("Rellena todo");
     const userRef = ref(db, 'usuarios/' + user);
     const snapshot = await get(userRef);
 
     if (isRegister) {
-      if (snapshot.exists()) {
-        alert("Este nombre de usuario ya está pillado.");
-      } else {
-        // Esto crea la carpeta 'usuarios' automáticamente en Firebase
+      if (snapshot.exists()) alert("Ese nombre ya existe");
+      else {
         await set(userRef, { password: pass });
-        alert("¡Cuenta creada! Ahora dale a 'Ya tengo cuenta' para entrar.");
+        alert("¡Cuenta creada!");
         toggleForms();
       }
     } else {
       if (snapshot.exists() && snapshot.val().password === pass) {
         window.currentUser = user;
-        // Cambia el "1234" por la contraseña que quieras para tu admin
+        // Cambia el "1234" por tu contraseña de admin real
         if(user === "VolcanoMC.111" && pass === "1234") window.isAdmin = true;
-        
         document.getElementById("auth-screen").classList.add("hidden");
         document.getElementById("game-area").classList.remove("hidden");
         startGame();
-      } else {
-        alert("Usuario o contraseña incorrectos.");
-      }
+      } else alert("Datos incorrectos");
     }
   };
 
-  // --- LÓGICA DEL RANKING ---
   window.saveScore = (time) => {
-    push(ref(db, 'rankings'), { 
-        user: window.currentUser, 
-        time: parseFloat(time),
-        date: Date.now()
-    });
+    push(ref(db, 'rankings'), { user: window.currentUser, time: parseFloat(time) });
   };
 
   window.loadRankings = (callback) => {
@@ -73,60 +61,58 @@
     });
   };
 
-  window.deleteScore = (id) => { 
-    if(window.isAdmin && confirm("¿Borrar tiempo?")) remove(ref(db, 'rankings/' + id)); 
-  };
+  window.deleteScore = (id) => { if(window.isAdmin) remove(ref(db, 'rankings/' + id)); };
 </script>
 
 <style>
   :root { --accent: #e67e22; }
-  body { font-family: 'Segoe UI', sans-serif; background: #2c3e50; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; user-select: none; }
+  body { font-family: sans-serif; background: #2c3e50; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; user-select: none; }
   .box { background: white; padding: 30px; border-radius: 15px; width: 300px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 100; }
   .hidden { display: none !important; }
-  input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-  button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 16px; }
-  button:active { transform: scale(0.98); }
-  #target { width: 65px; height: 65px; background: var(--accent); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; box-shadow: 0 0 20px var(--accent); font-size: 20px; }
-  .ui-panel { position: fixed; top: 15px; background: white; padding: 8px 15px; border-radius: 25px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
-  .rank-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
-  .del-btn { background: #ff4757; padding: 4px 8px; font-size: 12px; width: auto; margin: 0; }
+  input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
+  button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+  #target { width: 60px; height: 60px; background: var(--accent); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; box-shadow: 0 0 15px var(--accent); }
+  .ui { position: fixed; top: 15px; background: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
 </style>
 </head>
 <body>
 
 <div id="auth-screen" class="box">
-    <h1 style="color: var(--accent); margin-bottom: 20px; margin-top: 0;">🌋 VolcanoMC</h1>
-    
+    <h1 style="color: var(--accent); margin:0 0 20px 0;">🌋 VolcanoMC</h1>
     <div id="login-form">
         <input id="u-name" type="text" placeholder="Usuario">
         <input id="u-pass" type="password" placeholder="Contraseña">
         <button onclick="accessAccount(document.getElementById('u-name').value, document.getElementById('u-pass').value, false)">ENTRAR</button>
-        <p style="font-size: 13px; color: #666; cursor: pointer; margin-top: 15px;" onclick="toggleForms()">¿No tienes cuenta? <b>Regístrate aquí</b></p>
+        <p style="font-size: 12px; cursor: pointer; margin-top: 15px;" onclick="toggleForms()">¿No tienes cuenta? Regístrate</p>
     </div>
-
     <div id="register-form" class="hidden">
         <input id="reg-name" type="text" placeholder="Nuevo Usuario">
         <input id="reg-pass" type="password" placeholder="Nueva Contraseña">
         <button onclick="accessAccount(document.getElementById('reg-name').value, document.getElementById('reg-pass').value, true)" style="background: #27ae60;">CREAR CUENTA</button>
-        <p style="font-size: 13px; color: #666; cursor: pointer; margin-top: 15px;" onclick="toggleForms()">¿Ya tienes cuenta? <b>Inicia sesión</b></p>
+        <p style="font-size: 12px; cursor: pointer; margin-top: 15px;" onclick="toggleForms()">Ya tengo cuenta</p>
     </div>
 </div>
 
 <div id="game-area" class="hidden" style="width: 100vw; height: 100vh;" onmousedown="failGame()">
-    <div class="ui-panel" style="left: 20px;">Quedan: <span id="clicks-count">10</span></div>
-    <div class="ui-panel" style="right: 20px;">Tiempo: <span id="timer-val">0.00</span>s</div>
-    <div id="target" onmousedown="hitTarget(event)">10</div>
+    <div class="ui" style="left: 20px;">Objetivos: <span id="c-count">10</span></div>
+    <div class="ui" style="right: 20px;">Tiempo: <span id="t-val">0.00</span>s</div>
+    <div id="target" onmousedown="hit(event)">10</div>
+</div>
+
+<div id="fail-screen" class="box hidden">
+    <h1 style="color: #c0392b;">💥 FALLASTE</h1>
+    <p>Has tocado fuera del círculo.</p>
+    <button onclick="location.reload()">REINTENTAR</button>
 </div>
 
 <div id="rank-screen" class="box hidden">
-    <h2 style="color: var(--accent); margin-top: 0;">🏆 TOP 5 GLOBAL</h2>
-    <div id="list-container">Cargando...</div>
+    <h2 style="color: var(--accent);">🏆 TOP 5 GLOBAL</h2>
+    <div id="list"></div>
     <button onclick="location.reload()">JUGAR OTRA VEZ</button>
-    <p style="font-size: 11px; margin-top: 10px; color: #999;">Usuario: <span id="display-user"></span></p>
 </div>
 
 <script>
-let clicks = 10, startTime, timerInterval, isPlaying = false;
+let clicks = 10, startTime, timerInt, playing = false;
 
 function toggleForms() {
     document.getElementById("login-form").classList.toggle("hidden");
@@ -134,51 +120,46 @@ function toggleForms() {
 }
 
 function startGame() {
-    clicks = 10; isPlaying = true; startTime = Date.now();
-    timerInterval = setInterval(() => {
-        document.getElementById("timer-val").innerText = ((Date.now() - startTime)/1000).toFixed(2);
+    clicks = 10; playing = true; startTime = Date.now();
+    timerInt = setInterval(() => {
+        document.getElementById("t-val").innerText = ((Date.now() - startTime)/1000).toFixed(2);
     }, 10);
-    moveTarget();
+    move();
 }
 
-function moveTarget() {
+function move() {
     const t = document.getElementById("target");
-    t.style.left = Math.random() * (window.innerWidth - 80) + "px";
-    t.style.top = Math.random() * (window.innerHeight - 80) + "px";
+    t.style.left = Math.random() * (window.innerWidth - 70) + "px";
+    t.style.top = Math.random() * (window.innerHeight - 70) + "px";
     t.innerText = clicks;
-    document.getElementById("clicks-count").innerText = clicks;
+    document.getElementById("c-count").innerText = clicks;
 }
 
-function hitTarget(e) {
+function hit(e) {
     e.stopPropagation();
     clicks--;
     if (clicks <= 0) {
-        isPlaying = false;
-        clearInterval(timerInterval);
-        saveScore(document.getElementById("timer-val").innerText);
-        showLeaderboard();
-    } else {
-        moveTarget();
-    }
+        playing = false; clearInterval(timerInt);
+        saveScore(document.getElementById("t-val").innerText);
+        showRank();
+    } else move();
 }
 
 function failGame() {
-    if(isPlaying) alert("¡Fallaste! Haz clic en el círculo.");
+    if(!playing) return;
+    playing = false; clearInterval(timerInt);
+    document.getElementById("game-area").classList.add("hidden");
+    document.getElementById("fail-screen").classList.remove("hidden");
 }
 
-function showLeaderboard() {
+function showRank() {
     document.getElementById("game-area").classList.add("hidden");
     document.getElementById("rank-screen").classList.remove("hidden");
-    document.getElementById("display-user").innerText = window.currentUser;
-
     window.loadRankings(scores => {
-        const container = document.getElementById("list-container");
-        if(scores.length === 0) return container.innerHTML = "Sin registros.";
-        
-        container.innerHTML = scores.map((s, i) => `
-            <div class="rank-item">
-                <span><b>${i+1}.</b> ${s.user} - ${s.time}s</span>
-                ${window.isAdmin ? `<button class="del-btn" onclick="deleteScore('${s.id}')">X</button>` : ''}
+        document.getElementById("list").innerHTML = scores.map((s, i) => `
+            <div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #eee">
+                <span>${i+1}. ${s.user}</span>
+                <span>${s.time}s ${window.isAdmin ? `<b style="color:red; cursor:pointer" onclick="deleteScore('${s.id}')">X</b>` : ''}</span>
             </div>
         `).join("");
     });
