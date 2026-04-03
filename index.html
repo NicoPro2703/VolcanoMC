@@ -2,68 +2,60 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VolcanoMC Minijuego - Beta-5</title>
+<title>VolcanoMC - Global Beta v5</title>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getDatabase, ref, push, onValue, remove, query, orderByChild, limitToFirst } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+  // DATOS EXTRAÍDOS DE TU CAPTURA
+  const firebaseConfig = {
+    apiKey: "AIzaSyDx1e4vz7W2C7SuAhygkmYzJJOKzGdDSuE",
+    authDomain: "realtime-database-d61c8.firebaseapp.com",
+    databaseURL: "https://realtime-database-d61c8-default-rtdb.firebaseio.com",
+    projectId: "realtime-database-d61c8",
+    storageBucket: "realtime-database-d61c8.firebasestorage.app",
+    messagingSenderId: "42399354921",
+    appId: "1:42399354921:web:ad3585f325a9823718436",
+    measurementId: "G-MVXLJNHV56"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  window.saveScoreGlobal = (user, time) => {
+    push(ref(db, 'rankings'), { user, time: parseFloat(time), date: Date.now() });
+  };
+
+  window.loadRankings = (callback) => {
+    const topScores = query(ref(db, 'rankings'), orderByChild('time'), limitToFirst(5));
+    onValue(topScores, (snapshot) => {
+      const data = [];
+      snapshot.forEach(child => { data.push({ id: child.key, ...child.val() }); });
+      callback(data);
+    });
+  };
+
+  window.deleteScoreGlobal = (id) => {
+    remove(ref(db, 'rankings/' + id));
+  };
+</script>
 
 <style>
 :root { --accent: #e67e22; }
 body{ margin:0; font-family:'Segoe UI', Arial; background:#f4f4f4; overflow: hidden; }
-
-.screen{
-    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-    background:white; padding:25px; border-radius:15px; text-align:center;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 300px; z-index: 100;
-}
-
+.screen{ position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:25px; border-radius:15px; text-align:center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 300px; z-index: 100; }
 .hidden{ display:none !important; }
-
-#version-tag {
-    position: fixed; bottom: 10px; right: 10px;
-    font-size: 11px; color: #aaa; font-weight: bold; z-index: 1000;
-    pointer-events: none;
-}
-
-.game-ui {
-    position: fixed; top: 15px; background: white; padding: 10px 15px; 
-    border-radius: 8px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    z-index: 50; pointer-events: none;
-}
-
-#ui-left { left: 15px; }
-#ui-right { right: 15px; border-left: 4px solid var(--accent); }
-
-#game-area{ 
-    width:100vw; height:100vh; position:relative; 
-    cursor: crosshair; background: rgba(0,0,0,0.01); 
-}
-
-#target{
-    width:60px; height:60px; background: var(--accent); border-radius:50%;
-    position:absolute; display:flex; justify-content:center; align-items:center;
-    color:white; cursor:pointer; font-weight:bold; user-select: none; z-index: 10;
-}
-
-/* TROLL VIDEO (LA CÁRCEL) */
-#troll{
-    position:fixed; top:0; left:0; width:100vw; height:100vh;
-    background:black; display:flex; justify-content:center; align-items:center;
-    flex-direction:column; z-index:9999;
-}
-video{ width:100%; height: 80%; pointer-events: none; }
-video::-webkit-media-controls { display: none !important; }
-
-.leaderboard-item{ 
-    display:flex; justify-content:space-between; align-items:center;
-    margin:10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; 
-}
-.btn-del { background: #ff4757; color: white; border: none; border-radius: 4px; cursor: pointer; padding: 2px 8px; font-size: 12px; }
+#game-area{ width:100vw; height:100vh; position:relative; cursor: crosshair; background: rgba(0,0,0,0.01); }
+#target{ width:60px; height:60px; background: var(--accent); border-radius:50%; position:absolute; display:flex; justify-content:center; align-items:center; color:white; cursor:pointer; font-weight:bold; user-select: none; z-index: 10; }
+.game-ui { position: fixed; top: 15px; background: white; padding: 10px 15px; border-radius: 8px; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); z-index: 50; }
+#troll{ position:fixed; top:0; left:0; width:100vw; height:100vh; background:black; display:flex; justify-content:center; align-items:center; flex-direction:column; z-index:9999; }
+video{ width:100%; height: 100%; object-fit: contain; pointer-events: none; }
+.leaderboard-item{ display:flex; justify-content:space-between; align-items:center; margin:10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px; }
 </style>
 </head>
 
 <body oncontextmenu="return false;">
-
-<div id="version-tag">Beta-5 | Local Storage Mode</div>
-
 <div id="screen-login" class="screen">
     <h1 style="color: var(--accent);">🌋 VolcanoMC</h1>
     <input id="username" placeholder="Tu nombre" style="padding:8px; width:80%;">
@@ -74,106 +66,65 @@ video::-webkit-media-controls { display: none !important; }
 <div id="screen-gameover" class="screen hidden">
     <h1 style="color: #c0392b;">💥 GAME OVER</h1>
     <p>¡Fallo!</p>
-    <p>Tu tiempo: <span id="fail-time">0.00</span>s</p>
+    <p>Tiempo: <span id="fail-time">0.00</span>s</p>
     <br>
     <button onclick="restartGame()" style="padding:10px 25px; background:#34495e; color:white; border:none; border-radius:5px; cursor:pointer;">REINTENTAR</button>
 </div>
 
 <div id="game-area" class="hidden" onmousedown="gameOver()">
-    <div id="ui-left" class="game-ui">Objetivos: <span id="clicks-left">10</span></div>
-    <div id="ui-right" class="game-ui">Tiempo: <span id="live-timer">0.00</span>s</div>
+    <div style="left:15px" class="game-ui">Objetivos: <span id="clicks-left">10</span></div>
+    <div style="right:15px" class="game-ui">Tiempo: <span id="live-timer">0.00</span>s</div>
     <div id="target" onmousedown="hitTarget(event)">10</div>
 </div>
 
 <div id="screen-leaderboard" class="screen hidden">
-    <h2 style="color: var(--accent);">🏆 TOP 5 (Este equipo)</h2>
+    <h2 style="color: var(--accent);">🏆 TOP 5 GLOBAL</h2>
     <div id="leaderboard-list"></div>
-    <p style="font-size:10px; color:#888;">Los datos se guardan solo en este navegador.</p>
     <br>
     <button onclick="restartGame()" style="padding:8px 20px; cursor:pointer;">Volver</button>
 </div>
 
 <div id="troll" class="hidden">
-    <video id="troll-video" playsinline disablePictureInPicture>
+    <video id="troll-video" playsinline>
         <source id="video-source" src="" type="video/mp4">
     </video>
-    <div id="troll-text" style="color:white; margin-top:15px; font-weight:bold;">ANUNCIO OBLIGATORIO</div>
-    <button id="btn-skip" class="hidden" onclick="restartGame()" style="margin-top:20px; padding:10px 20px; background:#27ae60; color:white; border:none; border-radius:5px; cursor:pointer;">SALTAR ANUNCIO</button>
+    <div id="troll-text" style="color:white; margin-top:10px; font-weight:bold;">ANUNCIO OBLIGATORIO</div>
+    <button id="btn-skip" class="hidden" onclick="restartGame()" style="margin-top:10px; padding:10px 20px; background:#27ae60; color:white; border:none; border-radius:5px; cursor:pointer;">SALTAR ANUNCIO</button>
 </div>
 
 <script>
-let currentUser = "";
-let clicksNeeded = 10;
-let startTime;
-let timerInterval;
-let isAdmin = false;
-let isPlaying = false;
-let trollUnlockTimeout;
-
+let currentUser, clicksNeeded, startTime, timerInterval, isAdmin = false, isPlaying = false;
 const vPlayer = document.getElementById("troll-video");
 const skipBtn = document.getElementById("btn-skip");
-const trollTxt = document.getElementById("troll-text");
-const liveTimerDisplay = document.getElementById("live-timer");
-
-window.addEventListener('keydown', (e) => { if ([' ', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault(); });
-
-function unlockTrollWithDelay() {
-    clearTimeout(trollUnlockTimeout);
-    trollTxt.innerText = "Finalizando anuncio (3s)...";
-    trollUnlockTimeout = setTimeout(() => {
-        skipBtn.classList.remove("hidden"); 
-        trollTxt.innerText = "¡Anuncio finalizado!";
-    }, 3000);
-}
-
-vPlayer.onended = unlockTrollWithDelay;
 
 function login(){
     const name = document.getElementById("username").value.trim();
-    if (!name) return;
-    
+    if(!name) return;
     currentUser = name;
-    const lower = name.toLowerCase();
-
-    if(name === "VolcanoMC.111"){ 
-        isAdmin = true; 
-        showLeaderboard(); 
-        return; 
-    }
-
-    if(lower === "volcanomc" || lower === "volcano"){
-        isAdmin = false;
-        const source = document.getElementById("video-source");
-        source.src = (lower === "volcanomc") ? "rick.mp4" : "skibidi.mp4";
+    if(name === "VolcanoMC.111"){ isAdmin = true; showLeaderboard(); return; }
+    if(name.toLowerCase() === "volcanomc" || name.toLowerCase() === "volcano"){
+        document.getElementById("video-source").src = name.toLowerCase() === "volcanomc" ? "rick.mp4" : "skibidi.mp4";
         document.getElementById("screen-login").classList.add("hidden");
         document.getElementById("troll").classList.remove("hidden");
-        skipBtn.classList.add("hidden"); 
-        trollTxt.innerText = "Reproduciendo anuncio obligatorio...";
-        vPlayer.load(); 
-        vPlayer.play();
+        vPlayer.load(); vPlayer.play();
+        vPlayer.onended = () => { setTimeout(() => { skipBtn.classList.remove("hidden"); document.getElementById("troll-text").innerText="Finalizado"; }, 2000); };
         return;
     }
-
-    isAdmin = false;
-    startGame();
+    isAdmin = false; startGame();
 }
 
 function startGame(){
     document.getElementById("screen-login").classList.add("hidden");
     document.getElementById("game-area").classList.remove("hidden");
-    clicksNeeded = 10;
-    isPlaying = true;
-    startTime = Date.now();
-    timerInterval = setInterval(() => {
-        liveTimerDisplay.innerText = ((Date.now() - startTime) / 1000).toFixed(2);
-    }, 10);
+    clicksNeeded = 10; isPlaying = true; startTime = Date.now();
+    timerInterval = setInterval(() => { document.getElementById("live-timer").innerText = ((Date.now()-startTime)/1000).toFixed(2); }, 10);
     moveTarget();
 }
 
 function moveTarget(){
     const t = document.getElementById("target");
-    t.style.left = Math.random() * (window.innerWidth - 70) + "px";
-    t.style.top = Math.random() * (window.innerHeight - 70) + "px";
+    t.style.left = Math.random() * (window.innerWidth-70) + "px";
+    t.style.top = Math.random() * (window.innerHeight-70) + "px";
     t.innerText = clicksNeeded;
     document.getElementById("clicks-left").innerText = clicksNeeded;
 }
@@ -183,79 +134,42 @@ function hitTarget(event){
     clicksNeeded--;
     if(clicksNeeded <= 0){
         stopGame();
-        const finalTime = ((Date.now() - startTime) / 1000).toFixed(2);
-        saveScore(currentUser, finalTime);
+        saveScoreGlobal(currentUser, ((Date.now()-startTime)/1000).toFixed(2));
         showLeaderboard();
-    } else { 
-        moveTarget(); 
-    }
+    } else { moveTarget(); }
 }
 
 function gameOver(){
     if(!isPlaying) return;
-    const finalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+    const time = ((Date.now()-startTime)/1000).toFixed(2);
     stopGame();
     document.getElementById("game-area").classList.add("hidden");
     document.getElementById("screen-gameover").classList.remove("hidden");
-    document.getElementById("fail-time").innerText = finalTime;
+    document.getElementById("fail-time").innerText = time;
 }
 
-function stopGame() {
-    isPlaying = false;
-    clearInterval(timerInterval);
-}
-
-function saveScore(user, time){
-    let scores = JSON.parse(localStorage.getItem("volcano_scores") || "[]");
-    scores.push({user, time: parseFloat(time)});
-    scores.sort((a,b) => a.time - b.time);
-    localStorage.setItem("volcano_scores", JSON.stringify(scores.slice(0,5)));
-}
+function stopGame(){ isPlaying = false; clearInterval(timerInterval); }
 
 function showLeaderboard(){
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById("game-area").classList.add("hidden");
     document.getElementById("screen-leaderboard").classList.remove("hidden");
-    
-    const scores = JSON.parse(localStorage.getItem("volcano_scores") || "[]");
-    const list = document.getElementById("leaderboard-list");
-    
-    list.innerHTML = scores.map((s, i) => `
-        <div class="leaderboard-item">
-            <span><b>${i+1}.</b> ${s.user} - ${s.time}s</span>
-            ${isAdmin ? `<button class="btn-del" onclick="deletePlayer(${i})">❌</button>` : ''}
-        </div>
-    `).join("");
-
-    if(isAdmin && scores.length > 0){
-        list.innerHTML += `<br><button onclick="resetAll()" style="background:#333; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer; width:100%">Borrar Todo</button>`;
-    }
-}
-
-function deletePlayer(index){
-    let scores = JSON.parse(localStorage.getItem("volcano_scores") || "[]");
-    scores.splice(index, 1);
-    localStorage.setItem("volcano_scores", JSON.stringify(scores));
-    showLeaderboard();
-}
-
-function resetAll(){
-    if(confirm("¿Seguro que quieres borrar todos los datos de este navegador?")){
-        localStorage.removeItem("volcano_scores");
-        showLeaderboard();
-    }
+    window.loadRankings((scores) => {
+        document.getElementById("leaderboard-list").innerHTML = scores.map((s, i) => `
+            <div class="leaderboard-item">
+                <span><b>${i+1}.</b> ${s.user} - ${s.time}s</span>
+                ${isAdmin ? `<button onclick="deleteScoreGlobal('${s.id}')" style="background:#ff4757; color:white; border:none; padding:2px 8px; border-radius:4px; cursor:pointer;">❌</button>` : ''}
+            </div>
+        `).join("");
+    });
 }
 
 function restartGame(){
-    stopGame();
-    vPlayer.pause();
-    isAdmin = false;
+    stopGame(); vPlayer.pause();
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-    document.getElementById("game-area").classList.add("hidden");
     document.getElementById("troll").classList.add("hidden");
     document.getElementById("screen-login").classList.remove("hidden");
-    document.getElementById("username").value = "";
-    liveTimerDisplay.innerText = "0.00";
+    skipBtn.classList.add("hidden");
 }
 </script>
 </body>
