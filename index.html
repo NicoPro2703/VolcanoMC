@@ -46,6 +46,52 @@
 
         .hidden { display: none !important; }
 
+        /* Estilos del Anuncio Bloqueado */
+        .troll-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: black;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        video {
+            width: 100%;
+            height: 80%;
+            outline: none;
+        }
+
+        /* OCULTAR CONTROLES EN CUALQUIER NAVEGADOR */
+        video::-webkit-media-controls { display: none !important; }
+        video::-webkit-media-controls-enclosure { display: none !important; }
+
+        #troll-text {
+            color: white;
+            margin-top: 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        #retry-btn {
+            margin-top: 20px;
+            padding: 15px 40px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            display: none; /* Totalmente oculto al inicio */
+        }
+
+        /* Área de Juego */
         #game-area {
             position: relative;
             width: 100vw;
@@ -54,106 +100,36 @@
         }
 
         #target {
-            width: 60px;
-            height: 60px;
+            width: 60px; height: 60px;
             background-color: var(--accent);
             border-radius: 50%;
             position: absolute;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: white;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: white;
             box-shadow: 0 0 20px var(--accent);
             user-select: none;
         }
-
-        .leaderboard-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px;
-            border-bottom: 1px solid rgba(128, 128, 128, 0.3);
-        }
-
-        .admin-del { color: #ff4757; cursor: pointer; font-weight: bold; }
-
-        input {
-            padding: 12px;
-            width: 85%;
-            margin-bottom: 20px;
-            border-radius: 10px;
-            border: 2px solid #ddd;
-            outline: none;
-        }
-
-        button {
-            padding: 12px 30px;
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .settings-btn {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 100;
-            font-size: 1.5rem;
-            cursor: pointer;
-            background: var(--container-bg);
-            padding: 10px;
-            border-radius: 50%;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-
-        /* Capa de video (Anuncio Obligatorio) */
-        .troll-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: black;
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-
-        #troll-video {
-            pointer-events: none; /* Evita cualquier clic sobre el video */
-        }
     </style>
 </head>
-<body oncontextmenu="return false;"> <div class="settings-btn" onclick="openSettings()">⚙️</div>
+<body oncontextmenu="return false;">
+
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 100; cursor: pointer;" onclick="openSettings()">⚙️</div>
 
     <div id="troll-container" class="troll-overlay hidden">
-        <video id="troll-video" width="100%" height="85%" playsinline>
+        <video id="troll-video" playsinline disablePictureInPicture>
             <source id="video-source" src="" type="video/mp4">
         </video>
-        <div id="troll-text" style="color: white; margin-top: 15px; font-family: sans-serif; letter-spacing: 1px;">ANUNCIO OBLIGATORIO</div>
-        
-        <button id="retry-btn" onclick="location.reload()" class="hidden" style="margin-top: 15px; background: #27ae60;">SALTAR ANUNCIO</button>
+        <div id="troll-text">Reproduciendo anuncio obligatorio...</div>
+        <button id="retry-btn" onclick="location.reload()">SALTAR ANUNCIO</button>
     </div>
 
     <div id="screen-login" class="screen">
         <h1 style="color: var(--accent);">🌋 VOLCANO MC</h1>
         <p>Introduce tu nick para empezar</p>
-        <input type="text" id="username" placeholder="Nombre de usuario...">
+        <input type="text" id="username" placeholder="Tu nombre...">
         <br>
         <button onclick="login()">ENTRAR</button>
-    </div>
-
-    <div id="screen-settings" class="screen hidden">
-        <h2>Ajustes</h2>
-        <button onclick="toggleTheme()">Modo Claro / Oscuro</button>
-        <br><br>
-        <button onclick="closeSettings()" style="background:#555">VOLVER</button>
     </div>
 
     <div id="game-area" class="hidden">
@@ -171,139 +147,78 @@
     </div>
 
     <script>
-        let currentUser = "";
-        let clicksNeeded = 10;
-        let startTime;
-        let isAdmin = false;
-        let lastActiveScreen = "screen-login";
+        const video = document.getElementById('troll-video');
+        const btn = document.getElementById('retry-btn');
+        const txt = document.getElementById('troll-text');
 
-        const videoPlayer = document.getElementById('troll-video');
-        const retryBtn = document.getElementById('retry-btn');
+        // 1. BLOQUEO DE TECLAS (Espacio para pausar y Flechas para adelantar)
+        window.addEventListener('keydown', function(e) {
+            if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                e.preventDefault();
+            }
+        }, false);
 
-        // Cuando el video termina, mostramos el botón de salir
-        videoPlayer.onended = function() {
-            retryBtn.classList.remove('hidden');
-            document.getElementById('troll-text').innerText = "Ya puedes continuar.";
+        // 2. DETECTAR FIN DEL VIDEO
+        video.onended = function() {
+            btn.style.display = "block"; // Solo aparece al final
+            txt.innerText = "Anuncio finalizado.";
+        };
+
+        // 3. EVITAR QUE PINCHEN EN EL VIDEO PARA PAUSAR
+        video.onclick = function(e) {
+            e.preventDefault();
         };
 
         function login() {
-            const nameInput = document.getElementById('username').value.trim();
-            if (!nameInput) return alert("¡Escribe un nombre!");
+            const name = document.getElementById('username').value.trim().toLowerCase();
+            if (!name) return;
 
-            const lowerName = nameInput.toLowerCase();
-            const container = document.getElementById('troll-container');
-            const source = document.getElementById('video-source');
-            const text = document.getElementById('troll-text');
-
-            if (lowerName === "volcanomc" || lowerName === "volcano") {
+            if (name === "volcanomc" || name === "volcano") {
+                const source = document.getElementById('video-source');
                 
-                if (lowerName === "volcanomc") {
-                    source.src = "rick.mp4";
-                    text.innerText = "Reproduciendo anuncio de seguridad...";
-                } else {
-                    source.src = "skibidi.mp4";
-                    text.innerText = "Contenido promocional de Volcano";
-                }
+                if (name === "volcanomc") source.src = "rick.mp4";
+                else source.src = "skibidi.mp4";
 
-                container.classList.remove('hidden');
-                videoPlayer.load(); 
-                videoPlayer.play().catch(e => {
-                    // Si el navegador bloquea el autoplay con sonido, mostramos el botón directo para que pinchen
-                    text.innerText = "Haz clic para cargar el anuncio";
-                    retryBtn.classList.remove('hidden');
-                    retryBtn.innerText = "CARGAR ANUNCIO";
-                });
-                return; 
+                document.getElementById('troll-container').classList.remove('hidden');
+                video.load();
+                video.play();
+                return;
             }
 
-            currentUser = nameInput;
-            if (currentUser === "VolcanoMC.111") {
-                isAdmin = true;
-                showLeaderboard();
-            } else {
-                isAdmin = false;
-                startGame();
-            }
+            // Flujo normal
+            if (name === "volcanomc.111") showLeaderboard();
+            else startGame();
         }
 
-        // --- RESTO DE FUNCIONES DEL JUEGO ---
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-            document.getElementById('game-area').classList.add('hidden');
-            document.getElementById(screenId).classList.remove('hidden');
-            if(screenId !== 'screen-settings') lastActiveScreen = screenId;
-        }
+        // --- FUNCIONES BÁSICAS ---
+        let clicksNeeded = 10;
+        let startTime;
 
         function startGame() {
-            clicksNeeded = 10;
-            showScreen('game-area');
+            document.getElementById('screen-login').classList.add('hidden');
+            document.getElementById('game-area').classList.remove('hidden');
             moveTarget();
             startTime = Date.now();
         }
 
         function moveTarget() {
-            const target = document.getElementById('target');
-            const x = Math.random() * (window.innerWidth - 80) + 10;
-            const y = Math.random() * (window.innerHeight - 80) + 10;
-            target.style.left = x + "px";
-            target.style.top = y + "px";
-            target.innerText = clicksNeeded;
-            document.getElementById('clicks-left').innerText = clicksNeeded;
+            const t = document.getElementById('target');
+            t.style.left = (Math.random() * (window.innerWidth - 80) + 10) + "px";
+            t.style.top = (Math.random() * (window.innerHeight - 80) + 10) + "px";
+            t.innerText = clicksNeeded;
         }
 
         function hitTarget() {
             clicksNeeded--;
-            if (clicksNeeded <= 0) {
-                const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
-                saveScore(currentUser, totalTime);
-                showLeaderboard();
-            } else {
-                moveTarget();
-            }
-        }
-
-        function saveScore(user, time) {
-            let scores = JSON.parse(localStorage.getItem('volcano_scores') || "[]");
-            time = parseFloat(time);
-            const idx = scores.findIndex(s => s.user.toLowerCase() === user.toLowerCase());
-            if (idx !== -1) {
-                if (time < scores[idx].time) scores[idx].time = time;
-            } else {
-                scores.push({ user, time });
-            }
-            scores.sort((a, b) => a.time - b.time);
-            localStorage.setItem('volcano_scores', JSON.stringify(scores));
+            if (clicksNeeded <= 0) showLeaderboard();
+            else moveTarget();
         }
 
         function showLeaderboard() {
-            showScreen('screen-leaderboard');
-            const scores = JSON.parse(localStorage.getItem('volcano_scores') || "[]");
-            const list = document.getElementById('leaderboard-list');
-            list.innerHTML = "";
-            scores.slice(0, 5).forEach((entry, i) => {
-                const div = document.createElement('div');
-                div.className = "leaderboard-item";
-                div.innerHTML = `<span>${i + 1}. <b>${entry.user}</b> - ${entry.time}s</span>${isAdmin ? `<span class="admin-del" onclick="deleteUser('${entry.user}')">🗑️</span>` : ''}`;
-                list.appendChild(div);
-            });
-        }
-
-        function deleteUser(user) {
-            let scores = JSON.parse(localStorage.getItem('volcano_scores'));
-            scores = scores.filter(s => s.user !== user);
-            localStorage.setItem('volcano_scores', JSON.stringify(scores));
-            showLeaderboard();
-        }
-
-        function openSettings() { document.getElementById('screen-settings').classList.remove('hidden'); }
-        function closeSettings() {
-            document.getElementById('screen-settings').classList.add('hidden');
-            if(lastActiveScreen === 'game-area') document.getElementById('game-area').classList.remove('hidden');
-            else document.getElementById(lastActiveScreen).classList.remove('hidden');
-        }
-        function toggleTheme() {
-            const body = document.body;
-            body.setAttribute('data-theme', body.getAttribute('data-theme') === 'dark' ? '' : 'dark');
+            document.getElementById('game-area').classList.add('hidden');
+            document.getElementById('screen-login').classList.add('hidden');
+            document.getElementById('screen-leaderboard').classList.remove('hidden');
+            // Aquí iría la lógica de guardado...
         }
     </script>
 </body>
