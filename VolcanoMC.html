@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VolcanoMC - Challenge</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f4;
+            --text-color: #333;
+            --container-bg: #fff;
+            --accent: #e67e22;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #1a1a1a;
+            --text-color: #f4f4f4;
+            --container-bg: #2d2d2d;
+            --accent: #f39c12;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            transition: 0.3s;
+        }
+
+        .screen {
+            background-color: var(--container-bg);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+            position: absolute;
+            z-index: 10;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Estilo del Juego */
+        #game-area {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: var(--bg-color);
+        }
+
+        #target {
+            width: 60px;
+            height: 60px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            position: absolute;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 0 20px var(--accent);
+            user-select: none;
+            transition: transform 0.1s;
+        }
+        
+        #target:active { transform: scale(0.9); }
+
+        /* Clasificación */
+        .leaderboard-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            border-bottom: 1px solid rgba(128, 128, 128, 0.3);
+        }
+
+        .admin-controls { color: #e74c3c; cursor: pointer; font-weight: bold; margin-left: 10px; }
+
+        input {
+            padding: 12px;
+            width: 85%;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            outline: none;
+        }
+
+        button {
+            padding: 12px 30px;
+            background-color: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .settings-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            font-size: 1.5rem;
+            cursor: pointer;
+            background: var(--container-bg);
+            padding: 10px;
+            border-radius: 50%;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="settings-btn" onclick="openSettings()">⚙️</div>
+
+    <div id="screen-login" class="screen">
+        <h1 style="color: var(--accent); margin-top: 0;">🌋 VOLCANO</h1>
+        <p>¿Podrás entrar en el Top 5?</p>
+        <input type="text" id="username" placeholder="Tu nombre de usuario...">
+        <br>
+        <button onclick="login()">¡A JUGAR!</button>
+    </div>
+
+    <div id="screen-settings" class="screen hidden">
+        <h2>Ajustes</h2>
+        <p>Personaliza tu experiencia</p>
+        <button onclick="toggleTheme()">Cambiar Modo Claro / Oscuro</button>
+        <br><br>
+        <button onclick="closeSettings()" style="background:#555">VOLVER AL MENÚ</button>
+    </div>
+
+    <div id="game-area" class="hidden">
+        <div id="target" onclick="hitTarget()">10</div>
+        <div style="position:fixed; top:20px; left:20px; font-weight: bold; background: var(--container-bg); padding: 5px 15px; border-radius: 20px;">
+            Objetivos restantes: <span id="clicks-left">10</span>
+        </div>
+    </div>
+
+    <div id="screen-leaderboard" class="screen hidden">
+        <h2 style="color: var(--accent);">🏆 HALL OF FAME</h2>
+        <div id="leaderboard-list"></div>
+        <br>
+        <button onclick="location.reload()">REINTENTAR</button>
+    </div>
+
+    <script>
+        let currentUser = "";
+        let clicksNeeded = 10;
+        let startTime;
+        let isAdmin = false;
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById('game-area').classList.add('hidden');
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function login() {
+            const inputName = document.getElementById('username').value.trim();
+            
+            if (!inputName) return alert("¡Escribe un nombre!");
+
+            // --- EL RICKROLL ---
+            if (inputName.toLowerCase() === "volcanomc") {
+                window.location.href = "https://youtu.be/iik25wqIuFo?si=mMBLDjo2erLHbn_a";
+                return;
+            }
+
+            currentUser = inputName;
+
+            if (currentUser === "VolcanoMC.111") {
+                isAdmin = true;
+                showLeaderboard();
+            } else {
+                isAdmin = false;
+                startGame();
+            }
+        }
+
+        function startGame() {
+            clicksNeeded = 10;
+            showScreen('game-area');
+            moveTarget();
+            startTime = Date.now();
+        }
+
+        function moveTarget() {
+            const target = document.getElementById('target');
+            // Dejamos un margen de seguridad para que no salga fuera de la pantalla
+            const x = Math.random() * (window.innerWidth - 80) + 10;
+            const y = Math.random() * (window.innerHeight - 80) + 10;
+            target.style.left = x + "px";
+            target.style.top = y + "px";
+            target.innerText = clicksNeeded;
+            document.getElementById('clicks-left').innerText = clicksNeeded;
+        }
+
+        function hitTarget() {
+            clicksNeeded--;
+            if (clicksNeeded <= 0) {
+                const totalTime = ((Date.now() - startTime) / 1000).toFixed(2);
+                saveScore(currentUser, totalTime);
+                showLeaderboard();
+            } else {
+                moveTarget();
+            }
+        }
+
+        function saveScore(user, time) {
+            let scores = JSON.parse(localStorage.getItem('volcano_scores') || "[]");
+            time = parseFloat(time);
+
+            const existingIndex = scores.findIndex(s => s.user.toLowerCase() === user.toLowerCase());
+
+            if (existingIndex !== -1) {
+                if (time < scores[existingIndex].time) {
+                    scores[existingIndex].time = time;
+                }
+            } else {
+                scores.push({ user, time });
+            }
+
+            scores.sort((a, b) => a.time - b.time);
+            localStorage.setItem('volcano_scores', JSON.stringify(scores));
+        }
+
+        function showLeaderboard() {
+            showScreen('screen-leaderboard');
+            const scores = JSON.parse(localStorage.getItem('volcano_scores') || "[]");
+            const list = document.getElementById('leaderboard-list');
+            list.innerHTML = "";
+
+            // Solo mostrar los mejores 5
+            scores.slice(0, 5).forEach((entry, i) => {
+                const div = document.createElement('div');
+                div.className = "leaderboard-item";
+                div.innerHTML = `
+                    <span>${i + 1}. <b>${entry.user}</b> - ${entry.time}s</span>
+                    ${isAdmin ? `<span class="admin-controls" onclick="deleteUser('${entry.user}')">🗑️</span>` : ''}
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function deleteUser(user) {
+            let scores = JSON.parse(localStorage.getItem('volcano_scores'));
+            scores = scores.filter(s => s.user !== user);
+            localStorage.setItem('volcano_scores', JSON.stringify(scores));
+            showLeaderboard();
+        }
+
+        function openSettings() {
+            document.getElementById('screen-settings').classList.remove('hidden');
+        }
+
+        function closeSettings() {
+            document.getElementById('screen-settings').classList.add('hidden');
+        }
+
+        function toggleTheme() {
+            const body = document.body;
+            body.setAttribute('data-theme', body.getAttribute('data-theme') === 'dark' ? '' : 'dark');
+        }
+    </script>
+</body>
+</html>
