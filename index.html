@@ -46,6 +46,7 @@
 
         .hidden { display: none !important; }
 
+        /* Área de Juego */
         #game-area {
             position: relative;
             width: 100vw;
@@ -69,6 +70,7 @@
             user-select: none;
         }
 
+        /* Clasificación */
         .leaderboard-item {
             display: flex;
             justify-content: space-between;
@@ -110,6 +112,7 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
+        /* Capa de video (Bloqueo de trolleo) */
         .troll-overlay {
             position: fixed;
             top: 0;
@@ -133,7 +136,7 @@
         <video id="troll-video" width="100%" height="80%" controls>
             <source id="video-source" src="" type="video/mp4">
         </video>
-        <div id="troll-text" style="color: white; margin-top: 10px;">Cargando contenido...</div>
+        <div id="troll-text" style="color: white; margin-top: 10px;">Cargando anuncio...</div>
         <button onclick="location.reload()" style="margin-top: 10px; opacity: 0.5;">REINTENTAR</button>
     </div>
 
@@ -182,35 +185,35 @@
 
         function login() {
             const nameInput = document.getElementById('username').value.trim();
-            if (!nameInput) return alert("Escribe un nombre.");
+            if (!nameInput) return alert("¡Escribe un nombre!");
 
             const lowerName = nameInput.toLowerCase();
+            const container = document.getElementById('troll-container');
+            const video = document.getElementById('troll-video');
+            const source = document.getElementById('video-source');
+            const text = document.getElementById('troll-text');
+
+            // --- LÓGICA DE TROLLEO BLINDADA ---
             
-            // --- BLOQUEO TOTAL DE TROLLEO ---
-            if (lowerName === "volcanomc" || lowerName === "volcano") {
-                const container = document.getElementById('troll-container');
-                const video = document.getElementById('troll-video');
-                const source = document.getElementById('video-source');
-                const text = document.getElementById('troll-text');
-
-                // Elegir el archivo según el nombre
-                if (lowerName === "volcanomc") {
-                    source.src = "rick.mp4";
-                    text.innerText = "Anuncio obligatorio de VolcanoMC";
-                } else if (lowerName === "volcano") {
-                    source.src = "skibidi.mp4";
-                    text.innerText = "¡Vaya, parece que te gusta Volcano!";
-                }
-
+            if (lowerName === "volcanomc") {
+                source.src = "rick.mp4"; // Archivo para VolcanoMC
+                text.innerText = "Anuncio obligatorio de VolcanoMC";
                 container.classList.remove('hidden');
                 video.load(); 
                 video.play();
-                
-                // IMPORTANTE: Este return impide que el código siga y empiece el juego
-                return; 
+                return; // Bloquea el inicio del juego
+            } 
+            
+            else if (lowerName === "volcano") {
+                source.src = "skibidi.mp4"; // Archivo para Volcano
+                text.innerText = "¡Vaya, parece que te gusta Volcano!";
+                container.classList.remove('hidden');
+                video.load(); 
+                video.play();
+                return; // Bloquea el inicio del juego
             }
 
-            // --- FLUJO NORMAL SI NO ES TROLLEO ---
+            // --- FLUJO NORMAL ---
             currentUser = nameInput;
 
             if (currentUser === "VolcanoMC.111") {
