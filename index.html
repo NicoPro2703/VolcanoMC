@@ -3,21 +3,25 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VolcanoMC - Beta 15 Final Fix</title>
+<title>VolcanoMC - Beta 15 Admin Fix</title>
 
 <style>
   :root { --accent: #e67e22; --bg: #2c3e50; --danger: #e74c3c; }
   body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; user-select: none; }
   .box { background: white; padding: 25px; border-radius: 15px; width: 320px; text-align: center; color: #333; z-index: 10; box-shadow: 0 10px 30px rgba(0,0,0,0.5); position: relative; }
   .hidden { display: none !important; }
-  .settings-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 20px; cursor: pointer; color: #aaa; }
   .input-container { position: relative; width: 100%; margin-bottom: 10px; }
   input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; box-sizing: border-box; }
-  .eye-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; }
+  .eye-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #777; font-size: 18px; }
   button.main-btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 15px; }
-  button.btn-ranking { background: #34495e; }
-  button.btn-ajustes { background: #95a5a6; }
-  button.btn-salir { background: #c0392b; }
+  
+  /* ESTILO PARA LOS BOTONES DE BORRAR EN ADMIN */
+  .del-btn { background: var(--danger); color: white; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-weight: bold; margin-left: 10px; }
+  
+  #admin-panel { width: 400px; color: #333; max-height: 85vh; overflow-y: auto; text-align: left; }
+  #admin-panel h2 { text-align: center; color: var(--accent); }
+  .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 14px; }
+
   #target { width: 65px; height: 65px; background: var(--accent); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 22px; z-index: 100; }
   .fake-target { width: 55px; height: 55px; background: var(--danger); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; z-index: 90; }
   .ui-box { position: fixed; top: 20px; background: white; padding: 10px 20px; border-radius: 30px; color: #333; font-weight: bold; z-index: 200; }
@@ -25,11 +29,11 @@
 </style>
 
 <script>
-  // Definimos showScreen primero para evitar el ReferenceError de tu captura
+  // Funciones básicas primero para evitar errores de referencia
   function showScreen(id) {
     document.querySelectorAll('.box, #game-area').forEach(s => s.classList.add('hidden'));
-    const target = document.getElementById(id);
-    if(target) target.classList.remove('hidden');
+    const screen = document.getElementById(id);
+    if(screen) screen.classList.remove('hidden');
     if(id === 'main-menu') document.getElementById('user-display').innerText = "Hola, " + window.currentUser;
   }
 
@@ -65,6 +69,7 @@
     if(!user || !pass) return alert("Rellena los datos");
     const cleanUser = user.replace(/\./g, "_"); 
     
+    // Acceso administrativo para VolcanoMC111
     if ((user.toLowerCase() === "admin" && pass === "admin123") || 
         (user === "VolcanoMC111" && pass === "admin123")) {
         window.currentUser = user;
@@ -91,6 +96,41 @@
     }
   };
 
+  window.deleteUser = async (u) => { 
+    if(confirm("¿Seguro que quieres eliminar al usuario " + u + "?")) { 
+      await remove(ref(db, 'usuarios/' + u)); 
+      // Al borrar el usuario, también borramos su record si existe
+      await remove(ref(db, 'rankings/' + u)); 
+      alert("Usuario eliminado.");
+    }
+  };
+
+  window.deleteRank = async (u) => { 
+    if(confirm("¿Borrar record de " + u + "?")) { 
+      await remove(ref(db, 'rankings/' + u)); 
+      alert("Record borrado.");
+    }
+  };
+
+  function loadAdminData() {
+    onValue(ref(db, 'usuarios'), (s) => {
+        let h = "<h3>Gestionar Usuarios</h3>";
+        s.forEach(c => { 
+          if(c.key !== "admin" && c.key !== "VolcanoMC111") {
+            h += `<div class="admin-item"><span>${c.key}</span> <button class="del-btn" onclick="deleteUser('${c.key}')">EXPULSAR</button></div>`; 
+          }
+        });
+        document.getElementById("admin-users").innerHTML = h;
+    });
+    onValue(ref(db, 'rankings'), (s) => {
+        let h = "<h3>Gestionar Ranking</h3>";
+        s.forEach(c => { 
+            h += `<div class="admin-item"><span>${c.val().user}: ${c.val().time}s</span> <button class="del-btn" onclick="deleteRank('${c.key}')">QUITAR</button></div>`; 
+        });
+        document.getElementById("admin-ranks").innerHTML = h;
+    });
+  }
+
   window.saveScore = async (newTime) => {
     const cleanUser = window.currentUser.replace(/\./g, "_");
     const scoreRef = ref(db, 'rankings/' + cleanUser);
@@ -101,22 +141,6 @@
     }
   };
 
-  window.deleteUser = async (u) => { if(confirm("¿Borrar usuario?")) { await remove(ref(db, 'usuarios/' + u)); loadAdminData(); }};
-  window.deleteRank = async (u) => { if(confirm("¿Borrar record?")) { await remove(ref(db, 'rankings/' + u)); loadAdminData(); }};
-
-  function loadAdminData() {
-    onValue(ref(db, 'usuarios'), (s) => {
-        let h = "<h3>Usuarios</h3>";
-        s.forEach(c => { h += `<p>${c.key} <button onclick="deleteUser('${c.key}')">❌</button></p>`; });
-        document.getElementById("admin-users").innerHTML = h;
-    });
-    onValue(ref(db, 'rankings'), (s) => {
-        let h = "<h3>Rankings</h3>";
-        s.forEach(c => { h += `<p>${c.val().user}: ${c.val().time}s <button onclick="deleteRank('${c.key}')">❌</button></p>`; });
-        document.getElementById("admin-ranks").innerHTML = h;
-    });
-  }
-
   window.loadRankings = (callback) => {
     const q = query(ref(db, 'rankings'), orderByChild('time'), limitToFirst(5));
     onValue(q, (snap) => {
@@ -126,10 +150,7 @@
     });
   };
 
-  // Exportamos funciones al objeto window para que los botones HTML las vean
   window.showScreen = showScreen;
-  window.togglePass = togglePass;
-  window.toggleForms = toggleForms;
 </script>
 </head>
 
@@ -138,7 +159,6 @@
 <div class="version-tag">Version Beta 15</div>
 
 <div id="auth-screen" class="box">
-    <button class="settings-btn" onclick="showScreen('config-screen')">⚙️</button>
     <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px;">
         <img src="https://img.icons8.com/emoji/48/volcano-emoji.png" width="30">
         <h1 style="color:var(--accent); margin:0;">VolcanoMC</h1>
@@ -166,9 +186,15 @@
 <div id="main-menu" class="box hidden">
     <h2 id="user-display" style="color:var(--accent); margin-top:0;"></h2>
     <button class="main-btn" onclick="startGame()">JUGAR</button>
-    <button class="main-btn btn-ranking" onclick="showRank()">RANKING</button>
-    <button class="main-btn btn-ajustes" onclick="showScreen('config-screen')">AJUSTES</button>
-    <button class="main-btn btn-salir" onclick="location.reload()">SALIR</button>
+    <button class="main-btn" style="background:#34495e" onclick="showRank()">RANKING</button>
+    <button class="main-btn" style="background:#c0392b" onclick="location.reload()">SALIR</button>
+</div>
+
+<div id="admin-panel" class="box hidden">
+    <h2>PANEL CONTROL</h2>
+    <div id="admin-users"></div>
+    <div id="admin-ranks" style="margin-top:20px;"></div>
+    <button class="main-btn" style="background:#333; margin-top:20px;" onclick="showScreen('auth-screen')">CERRAR SESIÓN</button>
 </div>
 
 <div id="game-area" class="hidden" style="width:100vw; height:100vh; position:relative;" onmousedown="failGame()">
@@ -184,24 +210,9 @@
     <button class="main-btn" onclick="showScreen('main-menu')">VOLVER</button>
 </div>
 
-<div id="config-screen" class="box hidden">
-    <h2>AJUSTES</h2>
-    <input type="range" id="vol-slider" min="0" max="1" step="0.1" value="0.5" oninput="updateVol()" style="width:80%;">
-    <button class="main-btn" onclick="showScreen(window.currentUser ? 'main-menu' : 'auth-screen')">VOLVER</button>
-</div>
-
-<div id="admin-panel" class="box hidden" style="width:400px; color:#333; max-height:80vh; overflow-y:auto;">
-    <h2>Panel Admin</h2>
-    <div id="admin-users"></div>
-    <div id="admin-ranks"></div>
-    <button class="main-btn" onclick="showScreen('auth-screen')">CERRAR</button>
-</div>
-
 <script>
 let clicks = 10, startTime, timerInt, playing = false, bombInt;
 const music = document.getElementById("bg-music");
-
-function updateVol() { music.volume = document.getElementById("vol-slider").value; }
 
 function startGame() {
     music.play().catch(e => {});
