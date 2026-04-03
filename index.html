@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VolcanoMC Minijuego - Beta-4</title>
+<title>VolcanoMC Minijuego - Beta-5</title>
 
 <style>
 :root { --accent: #e67e22; }
@@ -19,7 +19,7 @@ body{ margin:0; font-family:'Segoe UI', Arial; background:#f4f4f4; overflow: hid
 
 #version-tag {
     position: fixed; bottom: 10px; right: 10px;
-    font-size: 12px; color: #888; font-weight: bold; z-index: 1000;
+    font-size: 11px; color: #aaa; font-weight: bold; z-index: 1000;
     pointer-events: none;
 }
 
@@ -43,7 +43,7 @@ body{ margin:0; font-family:'Segoe UI', Arial; background:#f4f4f4; overflow: hid
     color:white; cursor:pointer; font-weight:bold; user-select: none; z-index: 10;
 }
 
-/* TROLL VIDEO (LA CÁRCEL UNIFICADA) */
+/* TROLL VIDEO (LA CÁRCEL) */
 #troll{
     position:fixed; top:0; left:0; width:100vw; height:100vh;
     background:black; display:flex; justify-content:center; align-items:center;
@@ -62,7 +62,7 @@ video::-webkit-media-controls { display: none !important; }
 
 <body oncontextmenu="return false;">
 
-<div id="version-tag">Beta-4</div>
+<div id="version-tag">Beta-5 | Local Storage Mode</div>
 
 <div id="screen-login" class="screen">
     <h1 style="color: var(--accent);">🌋 VolcanoMC</h1>
@@ -73,8 +73,8 @@ video::-webkit-media-controls { display: none !important; }
 
 <div id="screen-gameover" class="screen hidden">
     <h1 style="color: #c0392b;">💥 GAME OVER</h1>
-    <p>¡Has fallado el tiro!</p>
-    <p>Tiempo final: <span id="fail-time">0.00</span>s</p>
+    <p>¡Fallo!</p>
+    <p>Tu tiempo: <span id="fail-time">0.00</span>s</p>
     <br>
     <button onclick="restartGame()" style="padding:10px 25px; background:#34495e; color:white; border:none; border-radius:5px; cursor:pointer;">REINTENTAR</button>
 </div>
@@ -86,10 +86,11 @@ video::-webkit-media-controls { display: none !important; }
 </div>
 
 <div id="screen-leaderboard" class="screen hidden">
-    <h2>🏆 TOP 5 TIEMPOS</h2>
+    <h2 style="color: var(--accent);">🏆 TOP 5 (Este equipo)</h2>
     <div id="leaderboard-list"></div>
+    <p style="font-size:10px; color:#888;">Los datos se guardan solo en este navegador.</p>
     <br>
-    <button onclick="restartGame()" style="padding:8px 20px; cursor:pointer;">Cerrar Sesión</button>
+    <button onclick="restartGame()" style="padding:8px 20px; cursor:pointer;">Volver</button>
 </div>
 
 <div id="troll" class="hidden">
@@ -98,8 +99,6 @@ video::-webkit-media-controls { display: none !important; }
     </video>
     <div id="troll-text" style="color:white; margin-top:15px; font-weight:bold;">ANUNCIO OBLIGATORIO</div>
     <button id="btn-skip" class="hidden" onclick="restartGame()" style="margin-top:20px; padding:10px 20px; background:#27ae60; color:white; border:none; border-radius:5px; cursor:pointer;">SALTAR ANUNCIO</button>
-    
-    <div id="debug-status" style="color:#555; font-size:10px; position:fixed; top:5px; left:5px;"></div>
 </div>
 
 <script>
@@ -109,7 +108,7 @@ let startTime;
 let timerInterval;
 let isAdmin = false;
 let isPlaying = false;
-let trollUnlockTimeout; // Variable para el temporizador de seguridad
+let trollUnlockTimeout;
 
 const vPlayer = document.getElementById("troll-video");
 const skipBtn = document.getElementById("btn-skip");
@@ -118,20 +117,15 @@ const liveTimerDisplay = document.getElementById("live-timer");
 
 window.addEventListener('keydown', (e) => { if ([' ', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault(); });
 
-// Función unificada de desbloqueo con retraso de seguridad
 function unlockTrollWithDelay() {
-    clearTimeout(trollUnlockTimeout); // Limpiar cualquier temporizador anterior
-    
-    // El navegador cree que ha terminado, pero esperamos 3 segundos de seguridad
+    clearTimeout(trollUnlockTimeout);
     trollTxt.innerText = "Finalizando anuncio (3s)...";
-    
     trollUnlockTimeout = setTimeout(() => {
         skipBtn.classList.remove("hidden"); 
         trollTxt.innerText = "¡Anuncio finalizado!";
-    }, 3000); // 3000ms = 3 segundos exactos de seguridad
+    }, 3000);
 }
 
-// Eventos del reproductor
 vPlayer.onended = unlockTrollWithDelay;
 
 function login(){
@@ -141,33 +135,25 @@ function login(){
     currentUser = name;
     const lower = name.toLowerCase();
 
-    // 1. ADMIN (Case Sensitive)
     if(name === "VolcanoMC.111"){ 
         isAdmin = true; 
         showLeaderboard(); 
         return; 
     }
 
-    // 2. TROLLEO (Unificado para ambos nombres)
     if(lower === "volcanomc" || lower === "volcano"){
         isAdmin = false;
         const source = document.getElementById("video-source");
         source.src = (lower === "volcanomc") ? "rick.mp4" : "skibidi.mp4";
-        
         document.getElementById("screen-login").classList.add("hidden");
         document.getElementById("troll").classList.remove("hidden");
-        
-        // Reiniciar estado de trolleo
         skipBtn.classList.add("hidden"); 
         trollTxt.innerText = "Reproduciendo anuncio obligatorio...";
-        clearTimeout(trollUnlockTimeout); // Asegurar que el temporizador esté limpio
-        
         vPlayer.load(); 
         vPlayer.play();
         return;
     }
 
-    // 3. JUEGO NORMAL
     isAdmin = false;
     startGame();
 }
@@ -227,7 +213,7 @@ function saveScore(user, time){
 }
 
 function showLeaderboard(){
-    document.getElementById("screen-login").classList.add("hidden");
+    document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById("game-area").classList.add("hidden");
     document.getElementById("screen-leaderboard").classList.remove("hidden");
     
@@ -254,7 +240,7 @@ function deletePlayer(index){
 }
 
 function resetAll(){
-    if(confirm("¿Borrar todos los récords?")){
+    if(confirm("¿Seguro que quieres borrar todos los datos de este navegador?")){
         localStorage.removeItem("volcano_scores");
         showLeaderboard();
     }
@@ -263,9 +249,7 @@ function resetAll(){
 function restartGame(){
     stopGame();
     vPlayer.pause();
-    vPlayer.currentTime = 0; // Reiniciar video
-    clearTimeout(trollUnlockTimeout); // Limpiar temporizador de seguridad
-    
+    isAdmin = false;
     document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
     document.getElementById("game-area").classList.add("hidden");
     document.getElementById("troll").classList.add("hidden");
