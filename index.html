@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VolcanoMC - Beta 8</title>
+<title>VolcanoMC - Beta 9</title>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -25,7 +25,6 @@
   window.accessAccount = async (user, pass, isRegister) => {
     if(!user || !pass) return alert("¡Rellena los datos!");
     
-    // --- TROLEO CON RICK Y SKIBIDI ---
     const lowerUser = user.toLowerCase();
     if (isRegister && (lowerUser === "volcano" || lowerUser === "volcanomc")) {
         const memes = ["rick.mp4", "skibiri.mp4"];
@@ -38,7 +37,7 @@
     const snapshot = await get(userRef);
 
     if (isRegister) {
-      if (snapshot.exists()) alert("Ese nombre ya lo tiene otro.");
+      if (snapshot.exists()) alert("Ese nombre ya existe.");
       else {
         await set(userRef, { password: pass });
         alert("¡Cuenta creada!");
@@ -47,10 +46,16 @@
     } else {
       if (snapshot.exists() && snapshot.val().password === pass) {
         window.currentUser = user;
+        // RECUERDA: Sin punto "." en el nombre para que Firebase no dé error
         if(user === "VolcanoMC111" && pass === "1234") window.isAdmin = true;
         showScreen("main-menu");
-      } else alert("Usuario o clave mal puesta.");
+      } else alert("Usuario o clave incorrectos.");
     }
+  };
+
+  window.togglePass = (id) => {
+    const input = document.getElementById(id);
+    input.type = input.type === "password" ? "text" : "password";
   };
 
   window.saveScore = (time) => {
@@ -72,18 +77,20 @@
 
 <style>
   :root { --accent: #e67e22; --bg: #2c3e50; }
-  body { font-family: sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; }
   .box { background: white; padding: 30px; border-radius: 15px; width: 300px; text-align: center; color: #333; z-index: 10; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
   .hidden { display: none !important; }
-  button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-  input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
   
-  /* ESTILO DEL VÍDEO MEME */
+  .input-group { position: relative; width: 100%; margin: 8px 0; }
+  input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+  .eye-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; background: none; border: none; font-size: 18px; padding: 0; width: auto; color: #777; }
+  
+  button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 16px; }
+  #target { width: 65px; height: 65px; background: var(--accent); border-radius: 50%; position: absolute; cursor: pointer; box-shadow: 0 0 15px var(--accent); }
+  .ui { position: fixed; top: 15px; background: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; color: #333; }
+  
   #meme-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; z-index: 999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
   video { width: 90%; max-width: 600px; border: 4px solid var(--accent); border-radius: 10px; }
-
-  #target { width: 65px; height: 65px; background: var(--accent); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; box-shadow: 0 0 15px var(--accent); }
-  .ui { position: fixed; top: 15px; background: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; color: #333; }
 </style>
 </head>
 <body>
@@ -96,15 +103,23 @@
 
 <div id="auth-screen" class="box">
     <h1 style="color: var(--accent); margin:0 0 20px 0;">🌋 VolcanoMC</h1>
+    
     <div id="login-form">
         <input id="u-name" type="text" placeholder="Usuario">
-        <input id="u-pass" type="password" placeholder="Contraseña">
+        <div class="input-group">
+            <input id="u-pass" type="password" placeholder="Contraseña">
+            <button class="eye-btn" onclick="togglePass('u-pass')">👁️</button>
+        </div>
         <button onclick="accessAccount(document.getElementById('u-name').value, document.getElementById('u-pass').value, false)">ENTRAR</button>
         <p onclick="toggleForms()" style="cursor:pointer; font-size: 12px; margin-top: 15px;">¿No tienes cuenta? Regístrate</p>
     </div>
+
     <div id="register-form" class="hidden">
-        <input id="reg-name" type="text" placeholder="Nombre de usuario">
-        <input id="reg-pass" type="password" placeholder="Contraseña">
+        <input id="reg-name" type="text" placeholder="Elige un nombre (Sin puntos)">
+        <div class="input-group">
+            <input id="reg-pass" type="password" placeholder="Elige contraseña">
+            <button class="eye-btn" onclick="togglePass('reg-pass')">👁️</button>
+        </div>
         <button onclick="accessAccount(document.getElementById('reg-name').value, document.getElementById('reg-pass').value, true)" style="background:#27ae60">REGISTRARME</button>
         <p onclick="toggleForms()" style="cursor:pointer; font-size: 12px; margin-top: 15px;">Ya tengo cuenta</p>
     </div>
@@ -117,14 +132,14 @@
     <button style="background:#c0392b" onclick="location.reload()">CERRAR SESIÓN</button>
 </div>
 
-<div id="game-area" class="hidden" style="width: 100vw; height: 100vh; background: var(--bg);" onmousedown="failGame()">
+<div id="game-area" class="hidden" style="width: 100vw; height: 100vh;" onmousedown="failGame()">
     <div class="ui" style="left: 20px;">Dianas: <span id="c-count">10</span></div>
     <div class="ui" style="right: 20px;">Tiempo: <span id="t-val">0.00</span>s</div>
-    <div id="target" onmousedown="hit(event)">10</div>
+    <div id="target" onmousedown="hit(event)"></div>
 </div>
 
 <div id="rank-screen" class="box hidden">
-    <h2 style="color: var(--accent); margin-top:0;">🏆 TOP 5</h2>
+    <h2>🏆 TOP 5</h2>
     <div id="list"></div>
     <button onclick="showScreen('main-menu')">VOLVER AL MENÚ</button>
 </div>
@@ -133,13 +148,10 @@
 let clicks = 10, startTime, timerInt, playing = false;
 
 function showMemeVideo(videoSrc) {
-    const container = document.getElementById("meme-container");
     const video = document.getElementById("meme-video");
-    const title = document.getElementById("meme-title");
-    
-    title.innerText = videoSrc === "rick.mp4" ? "🕺 RICKROLLEADO POR INTENTAR SER VOLCANO 🕺" : "🚽 SKIBIDIED POR IMPOSTOR 🚽";
+    document.getElementById("meme-title").innerText = "🕺 TROLEADO POR IMPOSTOR 🕺";
     video.src = videoSrc;
-    container.classList.remove("hidden");
+    document.getElementById("meme-container").classList.remove("hidden");
     video.play();
 }
 
@@ -157,9 +169,7 @@ function toggleForms() {
 function startGame() {
     showScreen('game-area');
     clicks = 10; playing = true; startTime = Date.now();
-    timerInt = setInterval(() => {
-        document.getElementById("t-val").innerText = ((Date.now() - startTime)/1000).toFixed(2);
-    }, 10);
+    timerInt = setInterval(() => { document.getElementById("t-val").innerText = ((Date.now() - startTime)/1000).toFixed(2); }, 10);
     move();
 }
 
@@ -167,8 +177,6 @@ function move() {
     const t = document.getElementById("target");
     t.style.left = Math.random() * (window.innerWidth - 75) + "px";
     t.style.top = Math.random() * (window.innerHeight - 75) + "px";
-    t.innerText = clicks;
-    document.getElementById("c-count").innerText = clicks;
 }
 
 function hit(e) {
@@ -181,12 +189,7 @@ function hit(e) {
     } else move();
 }
 
-function failGame() {
-    if(!playing) return;
-    playing = false; clearInterval(timerInt);
-    alert("¡FALLASTE! Reintenta desde el menú.");
-    showScreen('main-menu');
-}
+function failGame() { if(playing) { playing = false; clearInterval(timerInt); alert("¡FALLASTE!"); showScreen('main-menu'); } }
 
 function showRank() {
     showScreen('rank-screen');
