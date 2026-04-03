@@ -3,13 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VolcanoMC - Hardcore Mode</title>
+<title>VolcanoMC - Menu System</title>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
   import { getDatabase, ref, set, get, push, onValue, remove, query, orderByChild, limitToFirst } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-  // Configuración de tus capturas
   const firebaseConfig = {
     apiKey: "AIzaSyDx1e4vz7W2C7SuAhygkmYzJJOKzGdDSuE",
     authDomain: "realtime-database-d61c8.firebaseapp.com",
@@ -38,11 +37,10 @@
     } else {
       if (snapshot.exists() && snapshot.val().password === pass) {
         window.currentUser = user;
-        // Cambia el "1234" por tu contraseña de admin real
+        // TU CONTRASEÑA DE ADMIN AQUÍ
         if(user === "VolcanoMC.111" && pass === "1234") window.isAdmin = true;
-        document.getElementById("auth-screen").classList.add("hidden");
-        document.getElementById("game-area").classList.remove("hidden");
-        startGame();
+        
+        showScreen("main-menu"); // Al entrar, va al MENÚ, no al juego
       } else alert("Datos incorrectos");
     }
   };
@@ -65,14 +63,16 @@
 </script>
 
 <style>
-  :root { --accent: #e67e22; }
-  body { font-family: sans-serif; background: #2c3e50; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; user-select: none; }
-  .box { background: white; padding: 30px; border-radius: 15px; width: 300px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 100; }
+  :root { --accent: #e67e22; --bg: #2c3e50; }
+  body { font-family: 'Segoe UI', sans-serif; background: var(--bg); margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; user-select: none; color: white; }
+  .box { background: white; padding: 30px; border-radius: 15px; width: 300px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); color: #333; z-index: 100; }
   .hidden { display: none !important; }
   input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
-  button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+  button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 16px; }
+  button.sec { background: #34495e; }
   #target { width: 60px; height: 60px; background: var(--accent); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; box-shadow: 0 0 15px var(--accent); }
-  .ui { position: fixed; top: 15px; background: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
+  .ui { position: fixed; top: 15px; background: white; padding: 5px 15px; border-radius: 20px; font-weight: bold; color: #333; }
+  .rank-item { display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #eee; font-size: 14px; }
 </style>
 </head>
 <body>
@@ -93,7 +93,15 @@
     </div>
 </div>
 
-<div id="game-area" class="hidden" style="width: 100vw; height: 100vh;" onmousedown="failGame()">
+<div id="main-menu" class="box hidden">
+    <h2 style="color: var(--accent); margin-top:0;">BIENVENIDO</h2>
+    <p id="user-display" style="font-weight:bold;"></p>
+    <button onclick="startGame()">JUGAR</button>
+    <button class="sec" onclick="showRank()">CLASIFICACIÓN</button>
+    <button class="sec" style="background:#c0392b" onclick="location.reload()">CERRAR SESIÓN</button>
+</div>
+
+<div id="game-area" class="hidden" style="width: 100vw; height: 100vh; background: var(--bg);" onmousedown="failGame()">
     <div class="ui" style="left: 20px;">Objetivos: <span id="c-count">10</span></div>
     <div class="ui" style="right: 20px;">Tiempo: <span id="t-val">0.00</span>s</div>
     <div id="target" onmousedown="hit(event)">10</div>
@@ -102,17 +110,23 @@
 <div id="fail-screen" class="box hidden">
     <h1 style="color: #c0392b;">💥 FALLASTE</h1>
     <p>Has tocado fuera del círculo.</p>
-    <button onclick="location.reload()">REINTENTAR</button>
+    <button onclick="showScreen('main-menu')">VOLVER AL MENÚ</button>
 </div>
 
 <div id="rank-screen" class="box hidden">
-    <h2 style="color: var(--accent);">🏆 TOP 5 GLOBAL</h2>
+    <h2 style="color: var(--accent); margin-top:0;">🏆 TOP 5 GLOBAL</h2>
     <div id="list"></div>
-    <button onclick="location.reload()">JUGAR OTRA VEZ</button>
+    <button onclick="showScreen('main-menu')">VOLVER AL MENÚ</button>
 </div>
 
 <script>
 let clicks = 10, startTime, timerInt, playing = false;
+
+function showScreen(id) {
+    document.querySelectorAll('.box, #game-area').forEach(s => s.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+    if(id === 'main-menu') document.getElementById('user-display').innerText = window.currentUser;
+}
 
 function toggleForms() {
     document.getElementById("login-form").classList.toggle("hidden");
@@ -120,6 +134,7 @@ function toggleForms() {
 }
 
 function startGame() {
+    showScreen('game-area');
     clicks = 10; playing = true; startTime = Date.now();
     timerInt = setInterval(() => {
         document.getElementById("t-val").innerText = ((Date.now() - startTime)/1000).toFixed(2);
@@ -148,18 +163,16 @@ function hit(e) {
 function failGame() {
     if(!playing) return;
     playing = false; clearInterval(timerInt);
-    document.getElementById("game-area").classList.add("hidden");
-    document.getElementById("fail-screen").classList.remove("hidden");
+    showScreen('fail-screen');
 }
 
 function showRank() {
-    document.getElementById("game-area").classList.add("hidden");
-    document.getElementById("rank-screen").classList.remove("hidden");
+    showScreen('rank-screen');
     window.loadRankings(scores => {
         document.getElementById("list").innerHTML = scores.map((s, i) => `
-            <div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #eee">
-                <span>${i+1}. ${s.user}</span>
-                <span>${s.time}s ${window.isAdmin ? `<b style="color:red; cursor:pointer" onclick="deleteScore('${s.id}')">X</b>` : ''}</span>
+            <div class="rank-item">
+                <span><b>${i+1}.</b> ${s.user} - ${s.time}s</span>
+                ${window.isAdmin ? `<b style="color:red; cursor:pointer" onclick="deleteScore('${s.id}')">X</b>` : ''}
             </div>
         `).join("");
     });
