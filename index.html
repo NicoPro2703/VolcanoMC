@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VolcanoMC - Beta 14</title>
+<title>VolcanoMC - Beta 15 HARDCORE</title>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -86,13 +86,12 @@
   .hidden { display: none !important; }
   .settings-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 20px; cursor: pointer; color: #aaa; transition: 0.3s; }
   .settings-btn:hover { color: var(--accent); }
-  .input-group { position: relative; width: 100%; margin: 10px 0; display: flex; align-items: center; }
-  input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; outline: none; box-sizing: border-box; }
-  .eye-btn { position: absolute; right: 12px; background: none; border: none; font-size: 20px; cursor: pointer; color: #777; }
   button.main-btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 15px; }
-  #target { width: 65px; height: 65px; background: var(--accent); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 22px; z-index: 100; box-shadow: 0 0 15px rgba(230, 126, 34, 0.5); }
-  .fake-target { width: 55px; height: 55px; background: var(--danger); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; z-index: 90; box-shadow: 0 0 15px rgba(231, 76, 60, 0.5); animation: pulse 0.5s infinite alternate; }
-  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.05); } }
+  
+  #target { width: 60px; height: 60px; background: var(--accent); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 22px; z-index: 100; box-shadow: 0 0 15px rgba(230, 126, 34, 0.5); }
+  .fake-target { width: 50px; height: 50px; background: var(--danger); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px; z-index: 90; box-shadow: 0 0 15px rgba(231, 76, 60, 0.5); animation: pulse 0.4s infinite alternate; }
+  @keyframes pulse { from { transform: scale(1); } to { transform: scale(1.1); } }
+  
   .ui-box { position: fixed; top: 20px; background: white; padding: 10px 20px; border-radius: 30px; color: #333; font-weight: bold; z-index: 200; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
   .version-tag { position: fixed; bottom: 10px; right: 15px; font-size: 12px; opacity: 0.6; }
 </style>
@@ -100,26 +99,20 @@
 
 <body>
 <audio id="bg-music" loop><source src="musica.mp3?v=1" type="audio/mpeg"></audio>
-<div class="version-tag">Version Beta 14</div>
+<div class="version-tag">Version Beta 15</div>
 
 <div id="auth-screen" class="box">
     <button class="settings-btn" onclick="openSettings('auth-screen')">⚙️</button>
     <h1 style="color:var(--accent); margin:0 0 15px 0;">🌋 VolcanoMC</h1>
     <div id="login-form">
         <input id="u-name" type="text" placeholder="Usuario">
-        <div class="input-group">
-            <input id="u-pass" type="password" placeholder="Contraseña">
-            <button id="eye-login" class="eye-btn" onclick="togglePass('u-pass', 'eye-login')">👁️</button>
-        </div>
+        <input id="u-pass" type="password" placeholder="Contraseña" style="margin-top:10px;">
         <button class="main-btn" onclick="accessAccount(document.getElementById('u-name').value, document.getElementById('u-pass').value, false)">ENTRAR</button>
         <p onclick="toggleForms()" style="cursor:pointer; font-size:12px; margin-top:10px;">¿No tienes cuenta? Regístrate</p>
     </div>
     <div id="register-form" class="hidden">
         <input id="reg-name" type="text" placeholder="Nuevo Usuario">
-        <div class="input-group">
-            <input id="reg-pass" type="password" placeholder="Contraseña">
-            <button id="eye-reg" class="eye-btn" onclick="togglePass('reg-pass', 'eye-reg')">👁️</button>
-        </div>
+        <input id="reg-pass" type="password" placeholder="Contraseña" style="margin-top:10px;">
         <button class="main-btn" style="background:#27ae60" onclick="accessAccount(document.getElementById('reg-name').value, document.getElementById('reg-pass').value, true)">CREAR CUENTA</button>
         <p onclick="toggleForms()" style="cursor:pointer; font-size:12px; margin-top:10px;">Ya tengo cuenta</p>
     </div>
@@ -131,7 +124,7 @@
         <span>Volumen Música</span>
         <input type="range" id="vol-slider" min="0" max="1" step="0.1" value="0.5" oninput="updateVol()" style="width:50%; accent-color:var(--accent)">
     </div>
-    <button class="main-btn" id="save-settings-btn">GUARDAR</button>
+    <button class="main-btn" id="save-settings-btn">VOLVER</button>
 </div>
 
 <div id="main-menu" class="box hidden">
@@ -181,7 +174,9 @@ function startGame() {
     clicks = 10; playing = true; startTime = Date.now();
     document.getElementById("c-count").innerText = clicks;
     timerInt = setInterval(() => { document.getElementById("t-val").innerText = ((Date.now() - startTime)/1000).toFixed(2); }, 10);
-    bombInt = setInterval(spawnBomb, 1200);
+    
+    // BETA 15: Bombas más frecuentes (cada 600ms)
+    bombInt = setInterval(spawnBomb, 600);
     move();
 }
 
@@ -195,18 +190,33 @@ function move() {
 function hit(e) {
     e.stopPropagation(); clicks--;
     document.getElementById("c-count").innerText = clicks;
-    if (clicks <= 0) endGame(true); else move();
+    if (clicks <= 0) endGame(true); 
+    else {
+        move();
+        // BETA 15: Limpiar bombas al acertar para reubicar peligro
+        document.getElementById("bombs-container").innerHTML = "";
+    }
 }
 
 function spawnBomb() {
-    if(!playing || Math.random() < 0.4) return;
+    // BETA 15: Probabilidad de spawn del 80%
+    if(!playing || Math.random() < 0.2) return;
+    
     const bomb = document.createElement('div');
     bomb.className = 'fake-target'; bomb.innerText = "X";
     bomb.style.left = Math.random() * (window.innerWidth - 70) + "px";
     bomb.style.top = Math.random() * (window.innerHeight - 70) + "px";
-    bomb.onmousedown = (e) => { e.stopPropagation(); clicks = Math.min(10, clicks + 1); document.getElementById("c-count").innerText = clicks; bomb.remove(); };
+    
+    bomb.onmousedown = (e) => { 
+        e.stopPropagation(); 
+        clicks = Math.min(10, clicks + 1); 
+        document.getElementById("c-count").innerText = clicks; 
+        bomb.remove(); 
+        document.body.style.background = "#4c2c2c";
+        setTimeout(() => { document.body.style.background = "var(--bg)"; }, 100);
+    };
     document.getElementById("bombs-container").appendChild(bomb);
-    setTimeout(() => { if(bomb) bomb.remove(); }, 1500);
+    setTimeout(() => { if(bomb) bomb.remove(); }, 2000);
 }
 
 function failGame() { if(playing) { alert("¡FALLASTE!"); endGame(false); } }
@@ -227,13 +237,6 @@ function showRank() {
             </div>`).join("");
     });
 }
-
-window.togglePass = (id, btnId) => { 
-    const i = document.getElementById(id); 
-    const b = document.getElementById(btnId);
-    if(i.type === "password") { i.type = "text"; b.innerText = "🙈"; }
-    else { i.type = "password"; b.innerText = "👁️"; }
-};
 function toggleForms() { document.getElementById("login-form").classList.toggle("hidden"); document.getElementById("register-form").classList.toggle("hidden"); }
 </script>
 </body>
