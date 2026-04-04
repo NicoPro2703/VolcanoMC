@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/jpg" href="volcanomclogo.png">
-<title>VolcanoMC</title>
+<title>VolcanoMC - V1.6.1</title>
 
 <style>
   :root { --accent: #e67e22; --bg: #2c3e50; --danger: #e74c3c; }
@@ -22,11 +22,10 @@
 
   .del-btn { background: var(--danger); color: white; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-weight: bold; margin-left: 10px; }
   .unban-btn { background: #27ae60; color: white; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-weight: bold; margin-left: 10px; }
-  #admin-panel { width: 450px; color: #333; max-height: 85vh; overflow-y: auto; text-align: left; }
+  #admin-panel { width: 480px; color: #333; max-height: 85vh; overflow-y: auto; text-align: left; }
   #admin-panel h2 { text-align: center; color: var(--accent); }
   .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
-  #target { width: 65px; height: 65px; background: var(--accent); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 22px; z-index: 100; }
-  .fake-target { width: 55px; height: 55px; background: var(--danger); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; z-index: 90; }
+  .reason-text { color: #888; font-style: italic; font-size: 11px; display: block; }
   .ui-box { position: fixed; top: 20px; background: white; padding: 10px 20px; border-radius: 30px; color: #333; font-weight: bold; z-index: 200; }
   .version-tag { position: fixed; bottom: 10px; right: 15px; font-size: 12px; opacity: 0.6; }
 </style>
@@ -102,11 +101,12 @@
     const bannedRef = ref(db, 'baneados/' + currentIP.replace(/\./g, "_"));
     const bannedSnap = await get(bannedRef);
 
-    // COMPROBAR BANEO (Excepto si eres el Admin oficial)
     const isAdmin = (user.toLowerCase() === "admin" && pass === "admin123") || (user === "VolcanoMC111" && pass === "admin123");
     
+    // SI ESTÁ BANEADO, MOSTRAR EL MOTIVO
     if (bannedSnap.exists() && !isAdmin) {
-        alert("TU IP ESTÁ BANEADA DE VOLCANOMC");
+        const banData = bannedSnap.val();
+        alert("⛔ ESTÁS BANEADO DE VOLCANOMC\n\nMotivo: " + (banData.razon || "No especificada") + "\nFecha: " + banData.fecha);
         return;
     }
 
@@ -150,13 +150,20 @@
   };
 
   window.banUser = async (u, ip) => { 
-    if(confirm("¿BANEARE IP Y EXPULSAR a " + u + "?")) { 
+    const razon = prompt("¿Cuál es el motivo del baneo para " + u + "?");
+    if (razon === null) return; // Si cancela el prompt no hace nada
+
+    if(confirm("¿Confirmar baneo de IP para " + u + "?")) { 
       if(ip && ip !== "Desconocida") {
-          await set(ref(db, 'baneados/' + ip.replace(/\./g, "_")), { user: u, fecha: new Date().toLocaleString() });
+          await set(ref(db, 'baneados/' + ip.replace(/\./g, "_")), { 
+              user: u, 
+              razon: razon || "Sin motivo", 
+              fecha: new Date().toLocaleString() 
+          });
       }
       await remove(ref(db, 'usuarios/' + u)); 
       await remove(ref(db, 'rankings/' + u)); 
-      alert("Usuario Baneado.");
+      alert("Usuario baneado con éxito.");
     }
   };
 
@@ -183,10 +190,14 @@
     });
 
     onValue(ref(db, 'baneados'), (s) => {
-        let h = "<h3 style='color:red; margin-top:20px;'>Lista Negra (IPs)</h3>";
+        let h = "<h3 style='color:red; margin-top:20px;'>Lista Negra (Baneos)</h3>";
         s.forEach(c => { 
+            const b = c.val();
             h += `<div class="admin-item">
-                    <span>IP: ${c.key.replace(/_/g, ".")} (${c.val().user})</span> 
+                    <div>
+                        <b>${b.user}</b> <span style="font-size:10px">(${c.key.replace(/_/g, ".")})</span>
+                        <span class="reason-text">Razón: ${b.razon}</span>
+                    </div>
                     <button class="unban-btn" onclick="unbanIP('${c.key}')">PERDONAR</button>
                   </div>`; 
         });
@@ -194,43 +205,20 @@
     });
   }
 
-  window.saveScore = async (newTime) => {
-    const cleanUser = window.currentUser.replace(/\./g, "_");
-    const scoreRef = ref(db, 'rankings/' + cleanUser);
-    const newTimeNum = parseFloat(newTime);
-    const snapshot = await get(scoreRef);
-    if (!snapshot.exists() || newTimeNum < snapshot.val().time) {
-      await set(scoreRef, { user: window.currentUser, time: newTimeNum });
-    }
-  };
-
-  window.loadRankings = (callback) => {
-    const q = query(ref(db, 'rankings'), orderByChild('time'), limitToFirst(5));
-    onValue(q, (snap) => {
-      const data = [];
-      snap.forEach(c => { data.push(c.val()); });
-      callback(data);
-    });
-  };
-
   window.showScreen = showScreen;
 </script>
 </head>
 
 <body>
-<audio id="bg-music" loop><source src="musica.mp3" type="audio/mpeg"></audio>
-
 <div id="ad-overlay" class="hidden">
     <div class="ad-tag">Publicidad obligatoria (VolcanoMC Ads)</div>
     <video id="ad-video" disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback"></video>
 </div>
 
-<div class="version-tag">Version 1.6 - Anti-IP System</div>
+<div class="version-tag">Version 1.6.1 - Ban con Motivo</div>
 
 <div id="auth-screen" class="box">
-    <div style="margin-bottom: 15px;">
-        <h1 style="color:var(--accent); margin:0;">VolcanoMC</h1>
-    </div>
+    <h1 style="color:var(--accent); margin-bottom:20px;">VolcanoMC</h1>
     <div id="login-form">
         <div class="input-container"><input id="u-name" type="text" placeholder="Usuario"></div>
         <div class="input-container">
@@ -251,100 +239,18 @@
     </div>
 </div>
 
-<div id="main-menu" class="box hidden">
-    <h2 id="user-display" style="color:var(--accent); margin-top:0;"></h2>
-    <button class="main-btn" onclick="startGame()">JUGAR</button>
-    <button class="main-btn" style="background:#34495e" onclick="showRank()">RANKING</button>
-    <button class="main-btn" style="background:#c0392b" onclick="location.reload()">SALIR</button>
-</div>
-
 <div id="admin-panel" class="box hidden">
     <h2>PANEL CONTROL</h2>
     <div id="admin-users"></div>
-    <div id="admin-bans"></div> <button class="main-btn" style="background:#333; margin-top:20px;" onclick="showScreen('auth-screen')">CERRAR SESIÓN</button>
+    <div id="admin-bans"></div>
+    <button class="main-btn" style="background:#333; margin-top:20px;" onclick="showScreen('auth-screen')">CERRAR SESIÓN</button>
 </div>
 
-<div id="game-area" class="hidden" style="width:100vw; height:100vh; position:relative;" onmousedown="failGame()">
-    <div class="ui-box" style="left:20px;">Dianas: <span id="c-count">10</span></div>
-    <div class="ui-box" style="right:20px;">Tiempo: <span id="t-val">0.00</span>s</div>
-    <div id="target" onmousedown="hit(event)">10</div>
-    <div id="bombs-container"></div> 
+<div id="main-menu" class="box hidden">
+    <h2 id="user-display" style="color:var(--accent);"></h2>
+    <button class="main-btn" onclick="alert('Juego cargando...')">JUGAR</button>
+    <button class="main-btn" style="background:#c0392b" onclick="location.reload()">SALIR</button>
 </div>
 
-<div id="rank-screen" class="box hidden">
-    <h2>TOP 5</h2>
-    <div id="list" style="text-align:left;"></div>
-    <button class="main-btn" onclick="showScreen('main-menu')">VOLVER</button>
-</div>
-
-<script>
-let clicks = 10, startTime, timerInt, playing = false, bombInt;
-const music = document.getElementById("bg-music");
-
-function startGame() {
-    music.play().catch(e => {});
-    showScreen('game-area');
-    clicks = 10; playing = true; startTime = Date.now();
-    document.getElementById("c-count").innerText = clicks;
-    timerInt = setInterval(() => { document.getElementById("t-val").innerText = ((Date.now() - startTime)/1000).toFixed(2); }, 10);
-    bombInt = setInterval(spawnBomb, 600);
-    move();
-}
-
-function move() {
-    const t = document.getElementById("target");
-    t.style.left = Math.random() * (window.innerWidth - 85) + "px";
-    t.style.top = Math.random() * (window.innerHeight - 85) + "px";
-    t.innerText = clicks;
-}
-
-function hit(e) {
-    e.stopPropagation(); clicks--;
-    document.getElementById("c-count").innerText = clicks;
-    if (clicks <= 0) endGame(true); else { move(); document.getElementById("bombs-container").innerHTML = ""; }
-}
-
-function spawnBomb() {
-    if(!playing) return;
-    const bomb = document.createElement('div');
-    bomb.className = 'fake-target'; bomb.innerText = "X";
-    bomb.style.left = Math.random() * (window.innerWidth - 70) + "px";
-    bomb.style.top = Math.random() * (window.innerHeight - 70) + "px";
-    bomb.onmousedown = (e) => { 
-        e.stopPropagation(); 
-        clicks = Math.min(10, clicks + 1); 
-        document.getElementById("c-count").innerText = clicks; 
-        bomb.remove(); 
-    };
-    document.getElementById("bombs-container").appendChild(bomb);
-    setTimeout(() => { if(bomb.parentNode) bomb.remove(); }, 1200);
-}
-
-function failGame() { 
-    if(playing) { 
-        alert("¡FALLASTE!"); 
-        music.pause(); music.currentTime = 0; 
-        endGame(false); 
-    } 
-}
-
-function endGame(win) {
-    playing = false; clearInterval(timerInt); clearInterval(bombInt);
-    music.pause(); music.currentTime = 0;
-    if(win) { window.saveScore(document.getElementById("t-val").innerText); showRank(); } 
-    document.getElementById("bombs-container").innerHTML = "";
-    if(!win) showScreen('main-menu');
-}
-
-function showRank() {
-    showScreen('rank-screen');
-    window.loadRankings(scores => {
-        document.getElementById("list").innerHTML = scores.map((s, i) => `
-            <div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom:1px solid #eee">
-                <span><b>${i+1}.</b> ${s.user}</span><span>${s.time}s</span>
-            </div>`).join("");
-    });
-}
-</script>
 </body>
 </html>
