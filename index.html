@@ -21,9 +21,10 @@
   .ad-tag { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.7); padding: 5px 15px; border-radius: 5px; font-size: 14px; border: 1px solid white; }
 
   .del-btn { background: var(--danger); color: white; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-weight: bold; margin-left: 10px; }
-  #admin-panel { width: 400px; color: #333; max-height: 85vh; overflow-y: auto; text-align: left; }
+  .unban-btn { background: #27ae60; color: white; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-weight: bold; margin-left: 10px; }
+  #admin-panel { width: 450px; color: #333; max-height: 85vh; overflow-y: auto; text-align: left; }
   #admin-panel h2 { text-align: center; color: var(--accent); }
-  .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 14px; }
+  .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
   #target { width: 65px; height: 65px; background: var(--accent); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 22px; z-index: 100; }
   .fake-target { width: 55px; height: 55px; background: var(--danger); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; z-index: 90; }
   .ui-box { position: fixed; top: 20px; background: white; padding: 10px 20px; border-radius: 30px; color: #333; font-weight: bold; z-index: 200; }
@@ -97,16 +98,25 @@
   window.accessAccount = async (user, pass, isRegister) => {
     if(!user || !pass) return alert("Rellena los datos");
 
-    // --- PRIORIDAD 1: SI LOS DATOS SON DE ADMIN, PASA DIRECTO SIN TROLL ---
-    if ((user.toLowerCase() === "admin" && pass === "admin123") || 
-        (user === "VolcanoMC111" && pass === "admin123")) {
+    const currentIP = await getIP();
+    const bannedRef = ref(db, 'baneados/' + currentIP.replace(/\./g, "_"));
+    const bannedSnap = await get(bannedRef);
+
+    // COMPROBAR BANEO (Excepto si eres el Admin oficial)
+    const isAdmin = (user.toLowerCase() === "admin" && pass === "admin123") || (user === "VolcanoMC111" && pass === "admin123");
+    
+    if (bannedSnap.exists() && !isAdmin) {
+        alert("TU IP ESTÁ BANEADA DE VOLCANOMC");
+        return;
+    }
+
+    if (isAdmin) {
         window.currentUser = user;
         showScreen("admin-panel");
         loadAdminData();
         return;
     }
 
-    // --- PRIORIDAD 2: SI NO ERES ADMIN Y EL NOMBRE ES TROLL, LANZA VIDEO ---
     const trollPattern = /^volcan/i; 
     if (trollPattern.test(user)) {
         const trollVideos = ["rick.mp4", "skibiri.mp4"];
@@ -115,7 +125,6 @@
         return;
     }
 
-    // --- RESTO DE USUARIOS (FIREBASE) ---
     const cleanUser = user.replace(/\./g, "_"); 
     const userRef = ref(db, 'usuarios/' + cleanUser);
     const snapshot = await get(userRef);
@@ -123,11 +132,10 @@
     if (isRegister) {
       if (snapshot.exists()) alert("Ese nombre ya existe");
       else {
-        const userIP = await getIP();
         await set(userRef, { 
             password: pass, 
             fecha_registro: new Date().toLocaleString(),
-            ip: userIP,
+            ip: currentIP,
             ua: navigator.userAgent
         });
         alert("¡Cuenta creada!");
@@ -141,34 +149,48 @@
     }
   };
 
-  window.deleteUser = async (u) => { 
-    if(confirm("¿Seguro que quieres eliminar al usuario " + u + "?")) { 
+  window.banUser = async (u, ip) => { 
+    if(confirm("¿BANEARE IP Y EXPULSAR a " + u + "?")) { 
+      if(ip && ip !== "Desconocida") {
+          await set(ref(db, 'baneados/' + ip.replace(/\./g, "_")), { user: u, fecha: new Date().toLocaleString() });
+      }
       await remove(ref(db, 'usuarios/' + u)); 
       await remove(ref(db, 'rankings/' + u)); 
-      alert("Usuario eliminado.");
+      alert("Usuario Baneado.");
     }
+  };
+
+  window.unbanIP = async (ipKey) => {
+      if(confirm("¿Perdonar esta IP?")) {
+          await remove(ref(db, 'baneados/' + ipKey));
+          alert("IP Desbaneada.");
+      }
   };
 
   function loadAdminData() {
     onValue(ref(db, 'usuarios'), (s) => {
-        let h = "<h3>Gestionar Usuarios</h3>";
+        let h = "<h3>Usuarios Activos</h3>";
         s.forEach(c => { 
           if(c.key !== "admin" && c.key !== "VolcanoMC111") {
             const data = c.val();
             h += `<div class="admin-item">
                     <span><b>${c.key}</b> (${data.ip || 'no-ip'})</span> 
-                    <button class="del-btn" onclick="deleteUser('${c.key}')">EXPULSAR</button>
+                    <button class="del-btn" onclick="banUser('${c.key}', '${data.ip}')">BAN IP</button>
                   </div>`; 
           }
         });
         document.getElementById("admin-users").innerHTML = h;
     });
-    onValue(ref(db, 'rankings'), (s) => {
-        let h = "<h3>Gestionar Ranking</h3>";
+
+    onValue(ref(db, 'baneados'), (s) => {
+        let h = "<h3 style='color:red; margin-top:20px;'>Lista Negra (IPs)</h3>";
         s.forEach(c => { 
-            h += `<div class="admin-item"><span>${c.val().user}: ${c.val().time}s</span></div>`; 
+            h += `<div class="admin-item">
+                    <span>IP: ${c.key.replace(/_/g, ".")} (${c.val().user})</span> 
+                    <button class="unban-btn" onclick="unbanIP('${c.key}')">PERDONAR</button>
+                  </div>`; 
         });
-        document.getElementById("admin-ranks").innerHTML = h;
+        document.getElementById("admin-bans").innerHTML = h;
     });
   }
 
@@ -203,7 +225,7 @@
     <video id="ad-video" disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback"></video>
 </div>
 
-<div class="version-tag">Version 1.5.4</div>
+<div class="version-tag">Version 1.6 - Anti-IP System</div>
 
 <div id="auth-screen" class="box">
     <div style="margin-bottom: 15px;">
@@ -239,8 +261,7 @@
 <div id="admin-panel" class="box hidden">
     <h2>PANEL CONTROL</h2>
     <div id="admin-users"></div>
-    <div id="admin-ranks" style="margin-top:20px;"></div>
-    <button class="main-btn" style="background:#333; margin-top:20px;" onclick="showScreen('auth-screen')">CERRAR SESIÓN</button>
+    <div id="admin-bans"></div> <button class="main-btn" style="background:#333; margin-top:20px;" onclick="showScreen('auth-screen')">CERRAR SESIÓN</button>
 </div>
 
 <div id="game-area" class="hidden" style="width:100vw; height:100vh; position:relative;" onmousedown="failGame()">
