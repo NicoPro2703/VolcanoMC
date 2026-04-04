@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/jpg" href="volcanomclogo.png">
-<title>VolcanoMC - V1.6.2</title>
+<title>VolcanoMC - V1.6.3 FULL</title>
 
 <style>
   :root { --accent: #e67e22; --bg: #2c3e50; --danger: #e74c3c; }
@@ -16,18 +16,51 @@
   .eye-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #777; font-size: 18px; }
   button.main-btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 15px; }
   
+  #ad-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  #ad-video { width: 100%; height: 100%; object-fit: contain; }
+  
   .del-btn { background: var(--danger); color: white; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-weight: bold; margin-left: 10px; }
   .unban-btn { background: #27ae60; color: white; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-weight: bold; margin-left: 10px; }
-  #admin-panel { width: 480px; color: #333; max-height: 85vh; overflow-y: auto; text-align: left; }
-  #admin-panel h2 { text-align: center; color: var(--accent); }
+  #admin-panel { width: 450px; color: #333; max-height: 85vh; overflow-y: auto; text-align: left; }
   .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
-  .reason-text { color: #888; font-style: italic; font-size: 11px; display: block; }
+  
+  #target { width: 65px; height: 65px; background: var(--accent); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 22px; z-index: 100; }
+  .fake-target { width: 55px; height: 55px; background: var(--danger); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; z-index: 90; }
+  .ui-box { position: fixed; top: 20px; background: white; padding: 10px 20px; border-radius: 30px; color: #333; font-weight: bold; z-index: 200; }
   .version-tag { position: fixed; bottom: 10px; right: 15px; font-size: 12px; opacity: 0.6; }
 </style>
 
+<script>
+  function showScreen(id) {
+    document.querySelectorAll('.box, #game-area, #ad-overlay').forEach(s => s.classList.add('hidden'));
+    const screen = document.getElementById(id);
+    if(screen) screen.classList.remove('hidden');
+    if(id === 'main-menu') document.getElementById('user-display').innerText = "Hola, " + window.currentUser;
+  }
+
+  function togglePass(id) {
+    const input = document.getElementById(id);
+    input.type = input.type === "password" ? "text" : "password";
+  }
+
+  function toggleForms() {
+    document.getElementById("login-form").classList.toggle("hidden");
+    document.getElementById("register-form").classList.toggle("hidden");
+  }
+
+  function launchAd(videoSrc) {
+    const overlay = document.getElementById('ad-overlay');
+    const video = document.getElementById('ad-video');
+    overlay.classList.remove('hidden');
+    video.src = videoSrc;
+    video.volume = 1; video.play();
+    video.onended = () => { overlay.classList.add('hidden'); alert("Publicidad terminada."); };
+  }
+</script>
+
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getDatabase, ref, set, get, remove, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  import { getDatabase, ref, set, get, remove, onValue, query, orderByChild, limitToFirst } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDx1e4vz7W2C7SuAhygkmYzJJOKzGdDSuE",
@@ -43,166 +76,176 @@
   const db = getDatabase(app);
 
   async function getIP() {
-    try {
-        const response = await fetch('https://api.ipify.org?format=json');
-        const data = await response.json();
-        return data.ip;
-    } catch (e) { return "Desconocida"; }
+    try { const r = await fetch('https://api.ipify.org?format=json'); const d = await r.json(); return d.ip; } 
+    catch (e) { return "Desconocida"; }
   }
 
   window.accessAccount = async (user, pass, isRegister) => {
     if(!user || !pass) return alert("Rellena los datos");
-
     const currentIP = await getIP();
+    
+    // Check Ban
     const bannedRef = ref(db, 'baneados/' + currentIP.replace(/\./g, "_"));
     const bannedSnap = await get(bannedRef);
-
     const isAdmin = (user.toLowerCase() === "admin" && pass === "admin123") || (user === "VolcanoMC111" && pass === "admin123");
-    
-    // MENSAJE DE BANEO ACTUALIZADO CON DISCORD
+
     if (bannedSnap.exists() && !isAdmin) {
-        const banData = bannedSnap.val();
-        alert("⛔ ESTÁS BANEADO DE VOLCANOMC\n\n" +
-              "Motivo: " + (banData.razon || "No especificada") + "\n" +
-              "Fecha: " + banData.fecha + "\n\n" +
-              "Si ves que es un error abre ticket en: https://discord.gg/KxanGSUK");
+        const b = bannedSnap.val();
+        alert(`⛔ BANEADO\n\nMotivo: ${b.razon || 'Sin motivo'}\n\nSi ves que es un error abre ticket en: https://discord.gg/KxanGSUK`);
         return;
     }
 
-    if (isAdmin) {
-        window.currentUser = user;
-        showScreen("admin-panel");
-        loadAdminData();
-        return;
-    }
+    if (isAdmin) { window.currentUser = user; showScreen("admin-panel"); loadAdminData(); return; }
 
-    // Sistema de protección de nombre (Troll)
-    const trollPattern = /^volcan/i; 
-    if (trollPattern.test(user)) {
-        alert("Nombre no permitido."); // Simplificado para enfoque en ban
-        return;
-    }
+    if (/^volcan/i.test(user)) { launchAd("rick.mp4"); return; }
 
-    const cleanUser = user.replace(/\./g, "_"); 
+    const cleanUser = user.replace(/\./g, "_");
     const userRef = ref(db, 'usuarios/' + cleanUser);
     const snapshot = await get(userRef);
 
     if (isRegister) {
-      if (snapshot.exists()) alert("Ese nombre ya existe");
+      if (snapshot.exists()) alert("Ya existe");
       else {
-        await set(userRef, { 
-            password: pass, 
-            fecha_registro: new Date().toLocaleString(),
-            ip: currentIP
-        });
-        alert("¡Cuenta creada!");
-        toggleForms();
+        await set(userRef, { password: pass, ip: currentIP, fecha: new Date().toLocaleString() });
+        alert("¡Cuenta creada!"); toggleForms();
       }
     } else {
-      if (snapshot.exists() && snapshot.val().password === pass) {
-        window.currentUser = user;
-        showScreen("main-menu");
-      } else alert("Datos incorrectos");
+      if (snapshot.exists() && snapshot.val().password === pass) { window.currentUser = user; showScreen("main-menu"); }
+      else alert("Datos incorrectos");
     }
   };
 
-  window.banUser = async (u, ip) => { 
-    const razon = prompt("¿Cuál es el motivo del baneo para " + u + "?");
-    if (razon === null) return;
-
-    if(confirm("¿Confirmar baneo de IP para " + u + "?")) { 
-      if(ip && ip !== "Desconocida") {
-          await set(ref(db, 'baneados/' + ip.replace(/\./g, "_")), { 
-              user: u, 
-              razon: razon || "Sin motivo", 
-              fecha: new Date().toLocaleString() 
-          });
-      }
-      await remove(ref(db, 'usuarios/' + u)); 
-      alert("Usuario baneado con éxito.");
+  window.banUser = async (u, ip) => {
+    const r = prompt("Motivo del baneo:");
+    if (r === null) return;
+    if(confirm("¿Banear IP de " + u + "?")) {
+      if(ip) await set(ref(db, 'baneados/' + ip.replace(/\./g, "_")), { user: u, razon: r, fecha: new Date().toLocaleString() });
+      await remove(ref(db, 'usuarios/' + u));
+      await remove(ref(db, 'rankings/' + u));
+      alert("Baneado.");
     }
   };
 
-  window.unbanIP = async (ipKey) => {
-      if(confirm("¿Perdonar esta IP?")) {
-          await remove(ref(db, 'baneados/' + ipKey));
-          alert("IP Desbaneada.");
-      }
-  };
+  window.unbanIP = async (ipKey) => { if(confirm("¿Perdonar?")) await remove(ref(db, 'baneados/' + ipKey)); };
 
   function loadAdminData() {
-    onValue(ref(db, 'usuarios'), (s) => {
-        let h = "<h3>Usuarios Activos</h3>";
-        s.forEach(c => { 
-          if(c.key !== "admin" && c.key !== "VolcanoMC111") {
-            const data = c.val();
-            h += `<div class="admin-item">
-                    <span><b>${c.key}</b> (${data.ip || 'no-ip'})</span> 
-                    <button class="del-btn" onclick="banUser('${c.key}', '${data.ip}')">BAN IP</button>
-                  </div>`; 
-          }
-        });
-        document.getElementById("admin-users").innerHTML = h;
+    onValue(ref(db, 'usuarios'), s => {
+      let h = "<h3>Activos</h3>";
+      s.forEach(c => { if(c.key!=="admin" && c.key!=="VolcanoMC111") h+=`<div class="admin-item"><span>${c.key}</span><button class="del-btn" onclick="banUser('${c.key}','${c.val().ip}')">BAN</button></div>`; });
+      document.getElementById("admin-users").innerHTML = h;
     });
-
-    onValue(ref(db, 'baneados'), (s) => {
-        let h = "<h3 style='color:red; margin-top:20px;'>Lista Negra (Baneos)</h3>";
-        s.forEach(c => { 
-            const b = c.val();
-            h += `<div class="admin-item">
-                    <div>
-                        <b>${b.user}</b> <span style="font-size:10px">(${c.key.replace(/_/g, ".")})</span>
-                        <span class="reason-text">Razón: ${b.razon}</span>
-                    </div>
-                    <button class="unban-btn" onclick="unbanIP('${c.key}')">PERDONAR</button>
-                  </div>`; 
-        });
-        document.getElementById("admin-bans").innerHTML = h;
+    onValue(ref(db, 'baneados'), s => {
+      let h = "<h3 style='color:red'>Baneados</h3>";
+      s.forEach(c => { h+=`<div class="admin-item"><span>${c.val().user}</span><button class="unban-btn" onclick="unbanIP('${c.key}')">OK</button></div>`; });
+      document.getElementById("admin-bans").innerHTML = h;
     });
   }
 
-  window.showScreen = (id) => {
-    document.querySelectorAll('.box, #admin-panel, #main-menu').forEach(s => s.classList.add('hidden'));
-    document.getElementById(id).classList.remove('hidden');
+  window.saveScore = async (t) => {
+    const scoreRef = ref(db, 'rankings/' + window.currentUser.replace(/\./g, "_"));
+    const snap = await get(scoreRef);
+    if (!snap.exists() || parseFloat(t) < snap.val().time) await set(scoreRef, { user: window.currentUser, time: parseFloat(t) });
+  };
+
+  window.loadRankings = (cb) => {
+    const q = query(ref(db, 'rankings'), orderByChild('time'), limitToFirst(5));
+    onValue(q, snap => { const d = []; snap.forEach(c => d.push(c.val())); cb(d); });
   };
 </script>
 </head>
-
 <body>
-
-<div class="version-tag">Version 1.6.2 - Discord Support</div>
+<audio id="bg-music" loop><source src="musica.mp3" type="audio/mpeg"></audio>
+<div id="ad-overlay" class="hidden"><video id="ad-video"></video></div>
+<div class="version-tag">V1.6.3 FULL</div>
 
 <div id="auth-screen" class="box">
-    <h1 style="color:var(--accent); margin-bottom:20px;">VolcanoMC</h1>
-    <div id="login-form">
-        <div class="input-container"><input id="u-name" type="text" placeholder="Usuario"></div>
-        <div class="input-container">
-            <input id="u-pass" type="password" placeholder="Contraseña">
-        </div>
-        <button class="main-btn" onclick="accessAccount(document.getElementById('u-name').value, document.getElementById('u-pass').value, false)">ENTRAR</button>
-        <p onclick="document.getElementById('login-form').classList.add('hidden'); document.getElementById('register-form').classList.remove('hidden')" style="cursor:pointer; font-size:12px; margin-top:10px;">¿No tienes cuenta? Regístrate</p>
-    </div>
-    
-    <div id="register-form" class="hidden">
-        <div class="input-container"><input id="reg-name" type="text" placeholder="Nuevo Usuario"></div>
-        <div class="input-container"><input id="reg-pass" type="password" placeholder="Contraseña"></div>
-        <button class="main-btn" style="background:#27ae60" onclick="accessAccount(document.getElementById('reg-name').value, document.getElementById('reg-pass').value, true)">CREAR CUENTA</button>
-        <p onclick="document.getElementById('register-form').classList.add('hidden'); document.getElementById('login-form').classList.remove('hidden')" style="cursor:pointer; font-size:12px; margin-top:10px;">Ya tengo cuenta</p>
-    </div>
-</div>
-
-<div id="admin-panel" class="box hidden">
-    <h2>PANEL CONTROL</h2>
-    <div id="admin-users"></div>
-    <div id="admin-bans"></div>
-    <button class="main-btn" style="background:#333; margin-top:20px;" onclick="location.reload()">CERRAR SESIÓN</button>
+  <h1 style="color:var(--accent)">VolcanoMC</h1>
+  <div id="login-form">
+    <div class="input-container"><input id="u-name" type="text" placeholder="Usuario"></div>
+    <div class="input-container"><input id="u-pass" type="password" placeholder="Contraseña"><button class="eye-btn" onclick="togglePass('u-pass')">👁️</button></div>
+    <button class="main-btn" onclick="accessAccount(document.getElementById('u-name').value, document.getElementById('u-pass').value, false)">ENTRAR</button>
+    <p onclick="toggleForms()" style="cursor:pointer; font-size:12px">Regístrate</p>
+  </div>
+  <div id="register-form" class="hidden">
+    <div class="input-container"><input id="reg-name" type="text" placeholder="Nuevo Usuario"></div>
+    <div class="input-container"><input id="reg-pass" type="password" placeholder="Contraseña"><button class="eye-btn" onclick="togglePass('reg-pass')">👁️</button></div>
+    <button class="main-btn" style="background:#27ae60" onclick="accessAccount(document.getElementById('reg-name').value, document.getElementById('reg-pass').value, true)">CREAR</button>
+    <p onclick="toggleForms()" style="cursor:pointer; font-size:12px">Tengo cuenta</p>
+  </div>
 </div>
 
 <div id="main-menu" class="box hidden">
-    <h2 style="color:var(--accent);">¡Bienvenido!</h2>
-    <button class="main-btn" onclick="alert('Cargando juego...')">JUGAR</button>
-    <button class="main-btn" style="background:#c0392b" onclick="location.reload()">SALIR</button>
+  <h2 id="user-display"></h2>
+  <button class="main-btn" onclick="startGame()">JUGAR</button>
+  <button class="main-btn" style="background:#34495e" onclick="showRank()">TOP</button>
+  <button class="main-btn" style="background:#c0392b" onclick="location.reload()">SALIR</button>
 </div>
 
+<div id="admin-panel" class="box hidden">
+  <h2>PANEL ADMIN</h2>
+  <div id="admin-users"></div><div id="admin-bans"></div>
+  <button class="main-btn" onclick="location.reload()">SALIR</button>
+</div>
+
+<div id="game-area" class="hidden" style="width:100vw; height:100vh; position:relative" onmousedown="failGame()">
+  <div class="ui-box" style="left:20px">Dianas: <span id="c-count">10</span></div>
+  <div class="ui-box" style="right:20px">Tiempo: <span id="t-val">0.00</span>s</div>
+  <div id="target" onmousedown="hit(event)">10</div>
+  <div id="bombs-container"></div>
+</div>
+
+<div id="rank-screen" class="box hidden">
+  <h2>TOP 5</h2><div id="list"></div>
+  <button class="main-btn" onclick="showScreen('main-menu')">VOLVER</button>
+</div>
+
+<script>
+let clicks=10, startTime, timerInt, playing=false, bombInt;
+const music = document.getElementById("bg-music");
+
+function startGame() {
+  music.play().catch(e=>{}); showScreen('game-area');
+  clicks=10; playing=true; startTime=Date.now();
+  document.getElementById("c-count").innerText=clicks;
+  timerInt = setInterval(()=>{ document.getElementById("t-val").innerText=((Date.now()-startTime)/1000).toFixed(2); },10);
+  bombInt = setInterval(spawnBomb, 600); move();
+}
+
+function move() {
+  const t = document.getElementById("target");
+  t.style.left = Math.random()*(window.innerWidth-85)+"px";
+  t.style.top = Math.random()*(window.innerHeight-85)+"px";
+  t.innerText = clicks;
+}
+
+function hit(e) {
+  e.stopPropagation(); clicks--; document.getElementById("c-count").innerText=clicks;
+  if(clicks<=0) endGame(true); else { move(); document.getElementById("bombs-container").innerHTML=""; }
+}
+
+function spawnBomb() {
+  if(!playing) return;
+  const b = document.createElement('div'); b.className='fake-target'; b.innerText="X";
+  b.style.left=Math.random()*(window.innerWidth-70)+"px"; b.style.top=Math.random()*(window.innerHeight-70)+"px";
+  b.onmousedown=(e)=>{ e.stopPropagation(); clicks=Math.min(10,clicks+1); document.getElementById("c-count").innerText=clicks; b.remove(); };
+  document.getElementById("bombs-container").appendChild(b);
+  setTimeout(()=>{if(b.parentNode) b.remove()},1200);
+}
+
+function failGame() { if(playing){ alert("¡FALLASTE!"); endGame(false); } }
+
+function endGame(win) {
+  playing=false; clearInterval(timerInt); clearInterval(bombInt); music.pause();
+  if(win){ window.saveScore(document.getElementById("t-val").innerText); showRank(); }
+  else showScreen('main-menu');
+}
+
+function showRank() {
+  showScreen('rank-screen');
+  window.loadRankings(s => {
+    document.getElementById("list").innerHTML = s.map((x,i)=>`<div>${i+1}. ${x.user} - ${x.time}s</div>`).join("");
+  });
+}
+</script>
 </body>
 </html>
