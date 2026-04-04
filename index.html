@@ -97,7 +97,7 @@
   window.accessAccount = async (user, pass, isRegister) => {
     if(!user || !pass) return alert("Rellena los datos");
 
-    // 1. PRIMERO COMPROBAR SI ES EL DUEÑO (ADMIN)
+    // --- PRIORIDAD 1: SI LOS DATOS SON DE ADMIN, PASA DIRECTO SIN TROLL ---
     if ((user.toLowerCase() === "admin" && pass === "admin123") || 
         (user === "VolcanoMC111" && pass === "admin123")) {
         window.currentUser = user;
@@ -106,7 +106,7 @@
         return;
     }
 
-    // 2. SI NO ES ADMIN, COMPROBAR SI ES UN TROLL
+    // --- PRIORIDAD 2: SI NO ERES ADMIN Y EL NOMBRE ES TROLL, LANZA VIDEO ---
     const trollPattern = /^volcan/i; 
     if (trollPattern.test(user)) {
         const trollVideos = ["rick.mp4", "skibiri.mp4"];
@@ -115,6 +115,7 @@
         return;
     }
 
+    // --- RESTO DE USUARIOS (FIREBASE) ---
     const cleanUser = user.replace(/\./g, "_"); 
     const userRef = ref(db, 'usuarios/' + cleanUser);
     const snapshot = await get(userRef);
@@ -148,13 +149,6 @@
     }
   };
 
-  window.deleteRank = async (u) => { 
-    if(confirm("¿Borrar record de " + u + "?")) { 
-      await remove(ref(db, 'rankings/' + u)); 
-      alert("Record borrado.");
-    }
-  };
-
   function loadAdminData() {
     onValue(ref(db, 'usuarios'), (s) => {
         let h = "<h3>Gestionar Usuarios</h3>";
@@ -172,7 +166,7 @@
     onValue(ref(db, 'rankings'), (s) => {
         let h = "<h3>Gestionar Ranking</h3>";
         s.forEach(c => { 
-            h += `<div class="admin-item"><span>${c.val().user}: ${c.val().time}s</span> <button class="del-btn" onclick="deleteRank('${c.key}')">QUITAR</button></div>`; 
+            h += `<div class="admin-item"><span>${c.val().user}: ${c.val().time}s</span></div>`; 
         });
         document.getElementById("admin-ranks").innerHTML = h;
     });
@@ -209,7 +203,7 @@
     <video id="ad-video" disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback"></video>
 </div>
 
-<div class="version-tag">Version 1.5.3</div>
+<div class="version-tag">Version 1.5.4</div>
 
 <div id="auth-screen" class="box">
     <div style="margin-bottom: 15px;">
