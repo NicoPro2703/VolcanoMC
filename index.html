@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" type="image/jpg" href="volcanomclogo.png">
-<title>VolcanoMC - V1.6.1</title>
+<title>VolcanoMC - V1.6.2</title>
 
 <style>
   :root { --accent: #e67e22; --bg: #2c3e50; --danger: #e74c3c; }
@@ -16,62 +16,18 @@
   .eye-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #777; font-size: 18px; }
   button.main-btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 15px; }
   
-  #ad-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: black; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  #ad-video { width: 100%; height: 100%; object-fit: contain; }
-  .ad-tag { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.7); padding: 5px 15px; border-radius: 5px; font-size: 14px; border: 1px solid white; }
-
   .del-btn { background: var(--danger); color: white; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-weight: bold; margin-left: 10px; }
   .unban-btn { background: #27ae60; color: white; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-weight: bold; margin-left: 10px; }
   #admin-panel { width: 480px; color: #333; max-height: 85vh; overflow-y: auto; text-align: left; }
   #admin-panel h2 { text-align: center; color: var(--accent); }
   .admin-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
   .reason-text { color: #888; font-style: italic; font-size: 11px; display: block; }
-  .ui-box { position: fixed; top: 20px; background: white; padding: 10px 20px; border-radius: 30px; color: #333; font-weight: bold; z-index: 200; }
   .version-tag { position: fixed; bottom: 10px; right: 15px; font-size: 12px; opacity: 0.6; }
 </style>
 
-<script>
-  function showScreen(id) {
-    document.querySelectorAll('.box, #game-area, #ad-overlay').forEach(s => s.classList.add('hidden'));
-    const screen = document.getElementById(id);
-    if(screen) screen.classList.remove('hidden');
-    if(id === 'main-menu') document.getElementById('user-display').innerText = "Hola, " + window.currentUser;
-  }
-
-  function togglePass(id) {
-    const input = document.getElementById(id);
-    input.type = input.type === "password" ? "text" : "password";
-  }
-
-  function toggleForms() {
-    document.getElementById("login-form").classList.toggle("hidden");
-    document.getElementById("register-form").classList.toggle("hidden");
-  }
-
-  function launchAd(videoSrc) {
-    const overlay = document.getElementById('ad-overlay');
-    const video = document.getElementById('ad-video');
-    overlay.classList.remove('hidden');
-    video.src = videoSrc;
-    video.volume = 1; 
-    video.play();
-
-    const forceInterval = setInterval(() => {
-        video.volume = 1;
-        if (video.paused && !video.ended) video.play();
-    }, 100);
-
-    video.onended = () => {
-        clearInterval(forceInterval);
-        overlay.classList.add('hidden');
-        alert("Publicidad finalizada.");
-    };
-  }
-</script>
-
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-  import { getDatabase, ref, set, get, remove, onValue, query, orderByChild, limitToFirst } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+  import { getDatabase, ref, set, get, remove, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDx1e4vz7W2C7SuAhygkmYzJJOKzGdDSuE",
@@ -103,10 +59,13 @@
 
     const isAdmin = (user.toLowerCase() === "admin" && pass === "admin123") || (user === "VolcanoMC111" && pass === "admin123");
     
-    // SI ESTÁ BANEADO, MOSTRAR EL MOTIVO
+    // MENSAJE DE BANEO ACTUALIZADO CON DISCORD
     if (bannedSnap.exists() && !isAdmin) {
         const banData = bannedSnap.val();
-        alert("⛔ ESTÁS BANEADO DE VOLCANOMC\n\nMotivo: " + (banData.razon || "No especificada") + "\nFecha: " + banData.fecha);
+        alert("⛔ ESTÁS BANEADO DE VOLCANOMC\n\n" +
+              "Motivo: " + (banData.razon || "No especificada") + "\n" +
+              "Fecha: " + banData.fecha + "\n\n" +
+              "Si ves que es un error abre ticket en: https://discord.gg/KxanGSUK");
         return;
     }
 
@@ -117,11 +76,10 @@
         return;
     }
 
+    // Sistema de protección de nombre (Troll)
     const trollPattern = /^volcan/i; 
     if (trollPattern.test(user)) {
-        const trollVideos = ["rick.mp4", "skibiri.mp4"];
-        const videoElegido = trollVideos[Math.floor(Math.random() * trollVideos.length)];
-        launchAd(videoElegido);
+        alert("Nombre no permitido."); // Simplificado para enfoque en ban
         return;
     }
 
@@ -135,8 +93,7 @@
         await set(userRef, { 
             password: pass, 
             fecha_registro: new Date().toLocaleString(),
-            ip: currentIP,
-            ua: navigator.userAgent
+            ip: currentIP
         });
         alert("¡Cuenta creada!");
         toggleForms();
@@ -151,7 +108,7 @@
 
   window.banUser = async (u, ip) => { 
     const razon = prompt("¿Cuál es el motivo del baneo para " + u + "?");
-    if (razon === null) return; // Si cancela el prompt no hace nada
+    if (razon === null) return;
 
     if(confirm("¿Confirmar baneo de IP para " + u + "?")) { 
       if(ip && ip !== "Desconocida") {
@@ -162,7 +119,6 @@
           });
       }
       await remove(ref(db, 'usuarios/' + u)); 
-      await remove(ref(db, 'rankings/' + u)); 
       alert("Usuario baneado con éxito.");
     }
   };
@@ -205,17 +161,16 @@
     });
   }
 
-  window.showScreen = showScreen;
+  window.showScreen = (id) => {
+    document.querySelectorAll('.box, #admin-panel, #main-menu').forEach(s => s.classList.add('hidden'));
+    document.getElementById(id).classList.remove('hidden');
+  };
 </script>
 </head>
 
 <body>
-<div id="ad-overlay" class="hidden">
-    <div class="ad-tag">Publicidad obligatoria (VolcanoMC Ads)</div>
-    <video id="ad-video" disablepictureinpicture controlslist="nodownload noplaybackrate noremoteplayback"></video>
-</div>
 
-<div class="version-tag">Version 1.6.1 - Ban con Motivo</div>
+<div class="version-tag">Version 1.6.2 - Discord Support</div>
 
 <div id="auth-screen" class="box">
     <h1 style="color:var(--accent); margin-bottom:20px;">VolcanoMC</h1>
@@ -223,19 +178,16 @@
         <div class="input-container"><input id="u-name" type="text" placeholder="Usuario"></div>
         <div class="input-container">
             <input id="u-pass" type="password" placeholder="Contraseña">
-            <button class="eye-btn" onclick="togglePass('u-pass')">👁️</button>
         </div>
         <button class="main-btn" onclick="accessAccount(document.getElementById('u-name').value, document.getElementById('u-pass').value, false)">ENTRAR</button>
-        <p onclick="toggleForms()" style="cursor:pointer; font-size:12px; margin-top:10px;">¿No tienes cuenta? Regístrate</p>
+        <p onclick="document.getElementById('login-form').classList.add('hidden'); document.getElementById('register-form').classList.remove('hidden')" style="cursor:pointer; font-size:12px; margin-top:10px;">¿No tienes cuenta? Regístrate</p>
     </div>
+    
     <div id="register-form" class="hidden">
         <div class="input-container"><input id="reg-name" type="text" placeholder="Nuevo Usuario"></div>
-        <div class="input-container">
-            <input id="reg-pass" type="password" placeholder="Contraseña">
-            <button class="eye-btn" onclick="togglePass('reg-pass')">👁️</button>
-        </div>
+        <div class="input-container"><input id="reg-pass" type="password" placeholder="Contraseña"></div>
         <button class="main-btn" style="background:#27ae60" onclick="accessAccount(document.getElementById('reg-name').value, document.getElementById('reg-pass').value, true)">CREAR CUENTA</button>
-        <p onclick="toggleForms()" style="cursor:pointer; font-size:12px; margin-top:10px;">Ya tengo cuenta</p>
+        <p onclick="document.getElementById('register-form').classList.add('hidden'); document.getElementById('login-form').classList.remove('hidden')" style="cursor:pointer; font-size:12px; margin-top:10px;">Ya tengo cuenta</p>
     </div>
 </div>
 
@@ -243,12 +195,12 @@
     <h2>PANEL CONTROL</h2>
     <div id="admin-users"></div>
     <div id="admin-bans"></div>
-    <button class="main-btn" style="background:#333; margin-top:20px;" onclick="showScreen('auth-screen')">CERRAR SESIÓN</button>
+    <button class="main-btn" style="background:#333; margin-top:20px;" onclick="location.reload()">CERRAR SESIÓN</button>
 </div>
 
 <div id="main-menu" class="box hidden">
-    <h2 id="user-display" style="color:var(--accent);"></h2>
-    <button class="main-btn" onclick="alert('Juego cargando...')">JUGAR</button>
+    <h2 style="color:var(--accent);">¡Bienvenido!</h2>
+    <button class="main-btn" onclick="alert('Cargando juego...')">JUGAR</button>
     <button class="main-btn" style="background:#c0392b" onclick="location.reload()">SALIR</button>
 </div>
 
