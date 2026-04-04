@@ -28,7 +28,7 @@
   .fake-target { width: 55px; height: 55px; background: var(--danger); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; z-index: 90; }
   .ui-box { position: fixed; top: 20px; background: white; padding: 10px 20px; border-radius: 30px; color: #333; font-weight: bold; z-index: 200; }
   .version-tag { position: fixed; bottom: 10px; right: 15px; font-size: 12px; opacity: 0.6; }
-  .rank-msg { color: #27ae60; font-size: 14px; margin-top: 10px; font-weight: bold; }
+  .rank-msg { color: #27ae60; font-size: 13px; margin-top: 10px; font-weight: bold; line-height: 1.2; }
 </style>
 
 <script>
@@ -117,16 +117,20 @@
   window.saveScore = async (t) => {
     const scoreRef = ref(db, 'rankings/' + window.currentUser.replace(/\./g, "_"));
     const snap = await get(scoreRef);
-    window.lastTimeImproved = false; // Reset mejora
+    window.lastTimeImproved = false; 
     if (!snap.exists() || parseFloat(t) < snap.val().time) {
-      if(snap.exists()) window.lastTimeImproved = true; // Superó su marca
+      if(snap.exists()) window.lastTimeImproved = true; 
       await set(scoreRef, { user: window.currentUser, time: parseFloat(t) });
     }
   };
 
   window.loadRankings = (cb) => {
     const q = query(ref(db, 'rankings'), orderByChild('time'), limitToFirst(5));
-    onValue(q, snap => { const d = []; snap.forEach(c => d.push(c.val())); cb(d); });
+    onValue(q, snap => { 
+      const d = []; 
+      snap.forEach(c => { d.push(c.val()); }); 
+      cb(d); 
+    });
   };
 
   window.banUser = async (u, ip) => {
@@ -159,7 +163,7 @@
 <body>
 <audio id="bg-music" loop><source src="musica.mp3" type="audio/mpeg"></audio>
 <div id="ad-overlay" class="hidden"><video id="ad-video"></video></div>
-<div class="version-tag">Version 1.7</div>
+<div class="version-tag">Version 1.7.1</div>
 
 <div id="auth-screen" class="box">
   <h1 style="color:var(--accent)">VolcanoMC</h1>
@@ -251,12 +255,14 @@ async function endGame(win) {
 function showRank() {
   showScreen('rank-screen');
   const msgArea = document.getElementById("rank-message");
-  msgArea.innerText = ""; // Limpiar mensaje previo
+  msgArea.innerText = ""; 
 
   window.loadRankings(s => {
-    document.getElementById("list").innerHTML = s.map((x,i)=>`<div>${i+1}. ${x.user} - ${x.time}s</div>`).join("");
+    // Renderiza los 5 mejores (o los que haya)
+    document.getElementById("list").innerHTML = s.map((x, i) => `<div>${i+1}. ${x.user} - ${x.time}s</div>`).join("");
     
-    // Verificar si el primero es el usuario actual y no ha superado su tiempo en esta partida
+    // Solo mostramos el mensaje si hay al menos un registro, el primero es el usuario actual 
+    // y NO acaba de mejorar su propia marca (significa que ya era el 1 y se mantiene)
     if (s.length > 0 && s[0].user === window.currentUser && !window.lastTimeImproved) {
       msgArea.innerText = "Vas ganando tu rango Dios para 4 meses";
     }
