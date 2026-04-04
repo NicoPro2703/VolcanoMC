@@ -32,6 +32,9 @@
 </style>
 
 <script>
+  window.currentUser = "";
+  window.isAdminUser = false;
+
   function showScreen(id) {
     document.querySelectorAll('.box, #game-area, #ad-overlay').forEach(s => s.classList.add('hidden'));
     const screen = document.getElementById(id);
@@ -87,7 +90,9 @@
     
     const bannedRef = ref(db, 'baneados/' + currentIP.replace(/\./g, "_"));
     const bannedSnap = await get(bannedRef);
-    const isAdmin = (user.toLowerCase() === "admin" && pass === "admin123") || (user === "VolcanoMC111" && pass === "admin123");
+    
+    // Configuración de Admins
+    const isAdmin = (user === "BeibeIce15" && pass === "Xx-645816977") || (user === "Nico" && pass === "2703");
 
     if (bannedSnap.exists() && !isAdmin) {
         const b = bannedSnap.val();
@@ -95,7 +100,13 @@
         return;
     }
 
-    if (isAdmin) { window.currentUser = user; showScreen("admin-panel"); loadAdminData(); return; }
+    if (isAdmin) { 
+        window.currentUser = user; 
+        window.isAdminUser = true; // Marcamos que es admin
+        showScreen("main-menu"); // Los admins ahora van al menú principal primero
+        return; 
+    }
+    
     if (/^volcan/i.test(user)) { launchAd("rick.mp4"); return; }
 
     const cleanUser = user.replace(/\./g, "_");
@@ -109,12 +120,19 @@
         alert("¡Cuenta creada!"); toggleForms();
       }
     } else {
-      if (snapshot.exists() && snapshot.val().password === pass) { window.currentUser = user; showScreen("main-menu"); }
+      if (snapshot.exists() && snapshot.val().password === pass) { 
+          window.currentUser = user; 
+          window.isAdminUser = false;
+          showScreen("main-menu"); 
+      }
       else alert("Datos incorrectos");
     }
   };
 
   window.saveScore = async (t) => {
+    // Si es admin, no guardamos nada
+    if(window.isAdminUser) return;
+
     const scoreRef = ref(db, 'rankings/' + window.currentUser.replace(/\./g, "_"));
     const snap = await get(scoreRef);
     window.lastTimeImproved = false; 
@@ -146,10 +164,15 @@
 
   window.unbanIP = async (ipKey) => { if(confirm("¿Perdonar?")) await remove(ref(db, 'baneados/' + ipKey)); };
 
-  function loadAdminData() {
+  window.loadAdminData = () => {
     onValue(ref(db, 'usuarios'), s => {
       let h = "<h3>Activos</h3>";
-      s.forEach(c => { if(c.key!=="admin" && c.key!=="VolcanoMC111") h+=`<div class="admin-item"><span>${c.key}</span><button class="del-btn" onclick="banUser('${c.key}','${c.val().ip}')">BAN</button></div>`; });
+      s.forEach(c => { 
+          // Ocultar a los propios admins de la lista de gestión
+          if(c.key !== "BeibeIce15" && c.key !== "Nico") {
+            h+=`<div class="admin-item"><span>${c.key}</span><button class="del-btn" onclick="banUser('${c.key}','${c.val().ip}')">BAN</button></div>`; 
+          }
+      });
       document.getElementById("admin-users").innerHTML = h;
     });
     onValue(ref(db, 'baneados'), s => {
@@ -185,13 +208,14 @@
   <h2 id="user-display"></h2>
   <button class="main-btn" onclick="startGame()">JUGAR</button>
   <button class="main-btn" style="background:#34495e" onclick="showRank()">TOP</button>
+  <button id="btn-admin-panel" class="main-btn hidden" style="background:#8e44ad" onclick="window.loadAdminData(); showScreen('admin-panel')">PANEL ADMIN</button>
   <button class="main-btn" style="background:#c0392b" onclick="location.reload()">SALIR</button>
 </div>
 
 <div id="admin-panel" class="box hidden">
   <h2>PANEL ADMIN</h2>
   <div id="admin-users"></div><div id="admin-bans"></div>
-  <button class="main-btn" onclick="location.reload()">SALIR</button>
+  <button class="main-btn" onclick="showScreen('main-menu')">VOLVER</button>
 </div>
 
 <div id="game-area" class="hidden" style="width:100vw; height:100vh; position:relative" onmousedown="failGame()">
@@ -246,7 +270,11 @@ function failGame() { if(playing){ alert("¡FALLASTE!"); endGame(false); } }
 async function endGame(win) {
   playing=false; clearInterval(timerInt); clearInterval(bombInt); music.pause();
   if(win){ 
-    await window.saveScore(document.getElementById("t-val").innerText); 
+    if(window.isAdminUser) {
+        alert("¡Felicidades! Como admin no puedes estar en la tabla de tops 5.");
+    } else {
+        await window.saveScore(document.getElementById("t-val").innerText); 
+    }
     showRank(); 
   }
   else showScreen('main-menu');
@@ -257,14 +285,20 @@ function showRank() {
   const msgArea = document.getElementById("rank-message");
   msgArea.innerText = ""; 
 
+  // Mostrar botón de admin si el usuario es admin
+  if(window.isAdminUser) {
+      document.getElementById("btn-admin-panel").classList.remove("hidden");
+  }
+
   window.loadRankings(s => {
-    // Renderiza los 5 mejores (o los que haya)
     document.getElementById("list").innerHTML = s.map((x, i) => `<div>${i+1}. ${x.user} - ${x.time}s</div>`).join("");
     
-    // Solo mostramos el mensaje si hay al menos un registro, el primero es el usuario actual 
-    // y NO acaba de mejorar su propia marca (significa que ya era el 1 y se mantiene)
-    if (s.length > 0 && s[0].user === window.currentUser && !window.lastTimeImproved) {
-      msgArea.innerText = "Vas ganando tu rango Dios para 4 meses";
+    if (window.isAdminUser) {
+        msgArea.innerText = "Como admin no puedes estar en la tabla de tops 5";
+        msgArea.style.color = "#e74c3c"; // Rojo para indicar restricción
+    } else if (s.length > 0 && s[0].user === window.currentUser && !window.lastTimeImproved) {
+        msgArea.innerText = "Vas ganando tu rango Dios para 4 meses";
+        msgArea.style.color = "#27ae60";
     }
   });
 }
