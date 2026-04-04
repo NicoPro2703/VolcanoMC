@@ -39,7 +39,14 @@
     document.querySelectorAll('.box, #game-area, #ad-overlay').forEach(s => s.classList.add('hidden'));
     const screen = document.getElementById(id);
     if(screen) screen.classList.remove('hidden');
-    if(id === 'main-menu') document.getElementById('user-display').innerText = "Hola, " + window.currentUser;
+    
+    if(id === 'main-menu') {
+        document.getElementById('user-display').innerText = "Hola, " + window.currentUser;
+        // Mostrar u ocultar el botón de admin inmediatamente al entrar al menú
+        const adminBtn = document.getElementById('btn-admin-panel');
+        if(window.isAdminUser) adminBtn.classList.remove('hidden');
+        else adminBtn.classList.add('hidden');
+    }
   }
 
   function togglePass(id) {
@@ -102,8 +109,8 @@
 
     if (isAdmin) { 
         window.currentUser = user; 
-        window.isAdminUser = true; // Marcamos que es admin
-        showScreen("main-menu"); // Los admins ahora van al menú principal primero
+        window.isAdminUser = true; 
+        showScreen("main-menu"); // Al entrar aquí, showScreen ya activa el botón
         return; 
     }
     
@@ -130,9 +137,7 @@
   };
 
   window.saveScore = async (t) => {
-    // Si es admin, no guardamos nada
     if(window.isAdminUser) return;
-
     const scoreRef = ref(db, 'rankings/' + window.currentUser.replace(/\./g, "_"));
     const snap = await get(scoreRef);
     window.lastTimeImproved = false; 
@@ -168,7 +173,6 @@
     onValue(ref(db, 'usuarios'), s => {
       let h = "<h3>Activos</h3>";
       s.forEach(c => { 
-          // Ocultar a los propios admins de la lista de gestión
           if(c.key !== "BeibeIce15" && c.key !== "Nico") {
             h+=`<div class="admin-item"><span>${c.key}</span><button class="del-btn" onclick="banUser('${c.key}','${c.val().ip}')">BAN</button></div>`; 
           }
@@ -186,7 +190,7 @@
 <body>
 <audio id="bg-music" loop><source src="musica.mp3" type="audio/mpeg"></audio>
 <div id="ad-overlay" class="hidden"><video id="ad-video"></video></div>
-<div class="version-tag">Version 1.8</div>
+<div class="version-tag">Version 1.8.1</div>
 
 <div id="auth-screen" class="box">
   <h1 style="color:var(--accent)">VolcanoMC</h1>
@@ -285,17 +289,12 @@ function showRank() {
   const msgArea = document.getElementById("rank-message");
   msgArea.innerText = ""; 
 
-  // Mostrar botón de admin si el usuario es admin
-  if(window.isAdminUser) {
-      document.getElementById("btn-admin-panel").classList.remove("hidden");
-  }
-
   window.loadRankings(s => {
     document.getElementById("list").innerHTML = s.map((x, i) => `<div>${i+1}. ${x.user} - ${x.time}s</div>`).join("");
     
     if (window.isAdminUser) {
         msgArea.innerText = "Como admin no puedes estar en la tabla de tops 5";
-        msgArea.style.color = "#e74c3c"; // Rojo para indicar restricción
+        msgArea.style.color = "#e74c3c";
     } else if (s.length > 0 && s[0].user === window.currentUser && !window.lastTimeImproved) {
         msgArea.innerText = "Vas ganando tu rango Dios para 4 meses";
         msgArea.style.color = "#27ae60";
