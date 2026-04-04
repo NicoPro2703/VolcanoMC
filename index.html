@@ -28,6 +28,7 @@
   .fake-target { width: 55px; height: 55px; background: var(--danger); border-radius: 50%; position: absolute; cursor: pointer; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; z-index: 90; }
   .ui-box { position: fixed; top: 20px; background: white; padding: 10px 20px; border-radius: 30px; color: #333; font-weight: bold; z-index: 200; }
   .version-tag { position: fixed; bottom: 10px; right: 15px; font-size: 12px; opacity: 0.6; }
+  .rank-msg { color: #27ae60; font-size: 14px; margin-top: 10px; font-weight: bold; }
 </style>
 
 <script>
@@ -84,7 +85,6 @@
     if(!user || !pass) return alert("Rellena los datos");
     const currentIP = await getIP();
     
-    // Check Ban
     const bannedRef = ref(db, 'baneados/' + currentIP.replace(/\./g, "_"));
     const bannedSnap = await get(bannedRef);
     const isAdmin = (user.toLowerCase() === "admin" && pass === "admin123") || (user === "VolcanoMC111" && pass === "admin123");
@@ -96,7 +96,6 @@
     }
 
     if (isAdmin) { window.currentUser = user; showScreen("admin-panel"); loadAdminData(); return; }
-
     if (/^volcan/i.test(user)) { launchAd("rick.mp4"); return; }
 
     const cleanUser = user.replace(/\./g, "_");
@@ -113,6 +112,21 @@
       if (snapshot.exists() && snapshot.val().password === pass) { window.currentUser = user; showScreen("main-menu"); }
       else alert("Datos incorrectos");
     }
+  };
+
+  window.saveScore = async (t) => {
+    const scoreRef = ref(db, 'rankings/' + window.currentUser.replace(/\./g, "_"));
+    const snap = await get(scoreRef);
+    window.lastTimeImproved = false; // Reset mejora
+    if (!snap.exists() || parseFloat(t) < snap.val().time) {
+      if(snap.exists()) window.lastTimeImproved = true; // Superó su marca
+      await set(scoreRef, { user: window.currentUser, time: parseFloat(t) });
+    }
+  };
+
+  window.loadRankings = (cb) => {
+    const q = query(ref(db, 'rankings'), orderByChild('time'), limitToFirst(5));
+    onValue(q, snap => { const d = []; snap.forEach(c => d.push(c.val())); cb(d); });
   };
 
   window.banUser = async (u, ip) => {
@@ -140,17 +154,6 @@
       document.getElementById("admin-bans").innerHTML = h;
     });
   }
-
-  window.saveScore = async (t) => {
-    const scoreRef = ref(db, 'rankings/' + window.currentUser.replace(/\./g, "_"));
-    const snap = await get(scoreRef);
-    if (!snap.exists() || parseFloat(t) < snap.val().time) await set(scoreRef, { user: window.currentUser, time: parseFloat(t) });
-  };
-
-  window.loadRankings = (cb) => {
-    const q = query(ref(db, 'rankings'), orderByChild('time'), limitToFirst(5));
-    onValue(q, snap => { const d = []; snap.forEach(c => d.push(c.val())); cb(d); });
-  };
 </script>
 </head>
 <body>
@@ -195,7 +198,9 @@
 </div>
 
 <div id="rank-screen" class="box hidden">
-  <h2>TOP 5</h2><div id="list"></div>
+  <h2>TOP 5</h2>
+  <div id="list"></div>
+  <div id="rank-message" class="rank-msg"></div>
   <button class="main-btn" onclick="showScreen('main-menu')">VOLVER</button>
 </div>
 
@@ -234,16 +239,27 @@ function spawnBomb() {
 
 function failGame() { if(playing){ alert("¡FALLASTE!"); endGame(false); } }
 
-function endGame(win) {
+async function endGame(win) {
   playing=false; clearInterval(timerInt); clearInterval(bombInt); music.pause();
-  if(win){ window.saveScore(document.getElementById("t-val").innerText); showRank(); }
+  if(win){ 
+    await window.saveScore(document.getElementById("t-val").innerText); 
+    showRank(); 
+  }
   else showScreen('main-menu');
 }
 
 function showRank() {
   showScreen('rank-screen');
+  const msgArea = document.getElementById("rank-message");
+  msgArea.innerText = ""; // Limpiar mensaje previo
+
   window.loadRankings(s => {
     document.getElementById("list").innerHTML = s.map((x,i)=>`<div>${i+1}. ${x.user} - ${x.time}s</div>`).join("");
+    
+    // Verificar si el primero es el usuario actual y no ha superado su tiempo en esta partida
+    if (s.length > 0 && s[0].user === window.currentUser && !window.lastTimeImproved) {
+      msgArea.innerText = "Vas ganando tu rango Dios para 4 meses";
+    }
   });
 }
 </script>
