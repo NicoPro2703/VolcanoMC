@@ -16,7 +16,6 @@
   .eye-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #777; font-size: 18px; }
   button.main-btn { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 15px; }
   
-  /* ESTILO PARA LOS BOTONES DE BORRAR EN ADMIN */
   .del-btn { background: var(--danger); color: white; border: none; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-weight: bold; margin-left: 10px; }
   
   #admin-panel { width: 400px; color: #333; max-height: 85vh; overflow-y: auto; text-align: left; }
@@ -30,7 +29,6 @@
 </style>
 
 <script>
-  // Funciones básicas primero para evitar errores de referencia
   function showScreen(id) {
     document.querySelectorAll('.box, #game-area').forEach(s => s.classList.add('hidden'));
     const screen = document.getElementById(id);
@@ -70,7 +68,6 @@
     if(!user || !pass) return alert("Rellena los datos");
     const cleanUser = user.replace(/\./g, "_"); 
     
-    // Acceso administrativo para VolcanoMC111
     if ((user.toLowerCase() === "admin" && pass === "admin123") || 
         (user === "VolcanoMC111" && pass === "admin123")) {
         window.currentUser = user;
@@ -100,7 +97,6 @@
   window.deleteUser = async (u) => { 
     if(confirm("¿Seguro que quieres eliminar al usuario " + u + "?")) { 
       await remove(ref(db, 'usuarios/' + u)); 
-      // Al borrar el usuario, también borramos su record si existe
       await remove(ref(db, 'rankings/' + u)); 
       alert("Usuario eliminado.");
     }
@@ -157,11 +153,11 @@
 
 <body>
 <audio id="bg-music" loop><source src="musica.mp3" type="audio/mpeg"></audio>
-<div class="version-tag">Version 2</div>
+<div class="version-tag">Version 1</div>
 
 <div id="auth-screen" class="box">
-    <div style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px;">
-        <img src="volcanomclogo.jpg" width="30">
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; margin-bottom: 15px;">
+        <img src="volcanomclogo.jpg" width="80" style="border-radius: 10px; margin-bottom: 5px;">
         <h1 style="color:var(--accent); margin:0;">VolcanoMC</h1>
     </div>
     <div id="login-form">
